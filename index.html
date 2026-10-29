@@ -61,9 +61,10 @@ label{font-size:12px;color:var(--m);display:block;margin:8px 0 4px}
 <header><div class="logo"><b>AC</b>TRANSIT</div><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
 <div id="app"><aside id="side"><div id="v"></div></aside><div id="mapwrap"><div id="map"></div><div id="ov"></div></div></div>
 <nav id="bnav"></nav>
+<script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const PX=(localStorage.proxy||'').trim().replace(/\/*$/,''),B=PX?PX+'/':'https://api.actransit.org/transit/',$=s=>document.querySelector(s);
+const PX=((p=>p&&!/^https?:\/\//i.test(p)?'https://'+p:p)((localStorage.proxy||(/YOUR-WORKER/.test(window.APP_CONFIG?.proxy||'')?'':window.APP_CONFIG?.proxy)||'').trim())).replace(/\/*$/,''),B=PX?PX+'/':'https://api.actransit.org/transit/',$=s=>document.querySelector(s);
 let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,wake,watch,me,meT=0,tab='home',prevTab='home',TR=null,P={mode:'now'},CARDS={},plans=[];
 const TABS=[['home','Home'],['favs','Favorites'],['search','Search'],['more','More']];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -148,7 +149,10 @@ function searchV(){show(`<div class="card"><label for="pf">From</label><input id
 <button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
  sug('f');sug('t');document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
  $('#go').onclick=plan;if(plans.length)drawPlans()}
-async function plan(){const res=$('#res');res.innerHTML='<div class="card m">Planning…</div>';
+const SC={};
+async function coords(ids){const need=[...new Set(ids)].filter(i=>!SC[i]),ch=[];for(let i=0;i<need.length;i+=10)ch.push(need.slice(i,i+10));
+ await Promise.all(ch.map(c=>bt('actrealtime/stop?stpid='+c.join(',')).then(r=>(r.stops||[]).forEach(x=>SC[x.stpid]={lat:+x.lat,lon:+x.lon})).catch(()=>{})))}
+async function plan(){const res=$('#res');res.innerHTML='<div class="card m">Planning (checking transfers can take a few seconds)…</div>';
  try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
   let t0=new Date();if(P.mode==='at'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
   const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,2000),nearStops(d.lat,d.lon,2500)]);
@@ -157,21 +161,31 @@ async function plan(){const res=$('#res');res.innerHTML='<div class="card m">Pla
   const prd=((await bt('actrealtime/prediction?stpid='+Object.keys(om).join(','))).prd||[]).map(p=>({...p,dep:pt(p.prdtm)}))
    .filter(p=>p.dep&&p.dep>=new Date(t0.getTime()+om[p.stpid].w*6e4)).sort((a,b)=>a.dep-b.dep);
   const seen=new Set(),cand=[];prd.forEach(p=>{if(!seen.has(p.vid)&&cand.length<10){seen.add(p.vid);cand.push(p)}});
-  const rs=await Promise.allSettled(cand.map(p=>bt('actrealtime/prediction?vid='+p.vid)));const out=[];
-  rs.forEach((r,i)=>{if(r.status!=='fulfilled')return;const p=cand[i];let best;
-   (r.value.prd||[]).filter(q=>+q.seq>+p.seq&&dm[q.stpid]&&pt(q.prdtm)).forEach(q=>{const a=pt(q.prdtm),w=Math.ceil(H(dm[q.stpid],d)/264),end=new Date(a.getTime()+w*6e4);if(!best||end<best.end)best={q,a,w,end}});
-   if(best){const w1=om[p.stpid].w;out.push({rt:p.rt,des:p.des,vid:p.vid,ob:om[p.stpid],board:p.dep,w1,alight:best.q,a:best.a,w2:best.w,end:best.end,start:new Date(p.dep.getTime()-w1*6e4),n:+best.q.seq-+p.seq})}});
-  plans=out.sort((a,b)=>a.end-b.end).slice(0,6);P.o=o;P.d=d;
-  if(!plans.length){res.innerHTML=`<div class="card m">No direct bus found${P.mode==='at'?' for that time. Live predictions only reach a short time ahead; schedule-based search for later times isn’t built yet':''}. Transfers aren’t supported yet.</div>`;return}
+  const rs=await Promise.allSettled(cand.map(p=>bt('actrealtime/prediction?vid='+p.vid)));
+  const A=[];rs.forEach((r,i)=>{if(r.status==='fulfilled')A.push({p:cand[i],l:(r.value.prd||[]).filter(q=>+q.seq>+cand[i].seq&&pt(q.prdtm))})});
+  const leg=(p,q)=>({rt:p.rt,des:p.des,vid:p.vid,from:{id:p.stpid,name:p.stpnm},to:{id:q.stpid,name:q.stpnm},dep:pt(p.prdtm),arr:pt(q.prdtm),n:+q.seq-+p.seq});
+  const out=[];
+  A.forEach(({p,l})=>{let best;l.filter(q=>dm[q.stpid]).forEach(q=>{const w=Math.ceil(H(dm[q.stpid],d)/264),end=new Date(pt(q.prdtm).getTime()+w*6e4);if(!best||end<best.end)best={q,w,end}});
+   if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.q)],w1,w2:best.w,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}});
+  try{const dp=(await bt('actrealtime/prediction?stpid='+ds.slice(0,10).map(s=>s.id).join(','))).prd||[];
+   const bv=[...new Set(dp.map(x=>x.vid))].filter(v=>!seen.has(v)).slice(0,6);
+   const br=await Promise.allSettled(bv.map(v=>bt('actrealtime/prediction?vid='+v)));const Bs=[];
+   br.forEach(r=>{if(r.status!=='fulfilled')return;const l=(r.value.prd||[]).filter(q=>pt(q.prdtm)),k=l.findIndex(q=>dm[q.stpid]);if(k>0)Bs.push({board:l.slice(Math.max(0,k-15),k),q:l[k]})});
+   const As=A.slice(0,5).map(a=>({p:a.p,l:a.l.slice(0,15)}));
+   await coords([...As.flatMap(a=>a.l.map(q=>q.stpid)),...Bs.flatMap(b=>b.board.map(q=>q.stpid))]);
+   As.forEach(({p,l})=>Bs.forEach(b=>{let best;
+    l.forEach(a=>b.board.forEach(bq=>{const ca=SC[a.stpid],cb=SC[bq.stpid];if(!ca||!cb||p.rt===bq.rt)return;const ft=a.stpid===bq.stpid?0:H(ca,cb);if(ft>900)return;const wx=Math.ceil(ft/264);
+     if(pt(bq.prdtm)<new Date(pt(a.prdtm).getTime()+(wx+2)*6e4))return;
+     const w2=Math.ceil(H(dm[b.q.stpid],d)/264),end=new Date(pt(b.q.prdtm).getTime()+w2*6e4);if(!best||end<best.end)best={a,bq,wx,w2,end}}));
+    if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.a),leg(best.bq,b.q)],wx:best.wx,w1,w2:best.w2,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}}))}catch(e){}
+  plans=out.sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid).join()===x.legs.map(l=>l.vid).join())===i).slice(0,6);P.o=o;P.d=d;
+  if(!plans.length){res.innerHTML=`<div class="card m">No direct or one-transfer route found${P.mode==='at'?' for that time. Live predictions only reach a short time ahead':''}.</div>`;return}
   drawPlans()}catch(e){res.innerHTML='';fail(e)}}
-function drawPlans(){const o=P.o,d=P.d;LG.clearLayers();dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);
- plans.forEach(x=>dot(x.ob,'#EE8329').addTo(LG));map.fitBounds([[o.lat,o.lon],[d.lat,d.lon]],{padding:[50,50]});
- $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Direct routes · live predictions · estimates only</div></div>`+plans.map((x,i)=>`<div class="card opt"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
-<div class="m">Walk ${x.w1} min → <span class="badge">${esc(x.rt)}</span> → Walk ${x.w2} min</div>
-<div class="stp"><b>${fmt(x.board)}</b> Board at ${esc(x.ob.name)}<div class="m">Line ${esc(x.rt)} to ${esc(x.des)} · Bus ${esc(x.vid)} · ${x.n} stop${x.n>1?'s':''}</div></div>
-<div class="stp" style="border:0"><b>${fmt(x.a)}</b> Get off at ${esc(x.alight.stpnm)}</div>
-<button class="o" data-plan="${i}" style="width:100%">Track this bus</button></div>`).join('')}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-plan]');if(b){const x=plans[b.dataset.plan];track(x.vid,x.rt,x.des,{target:{id:x.alight.stpid,n:x.alight.stpnm}})}});
+function drawPlans(){const o=P.o,d=P.d;LG.clearLayers();dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);map.fitBounds([[o.lat,o.lon],[d.lat,d.lon]],{padding:[50,50]});
+ $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Direct and one-transfer · live predictions · estimates only</div></div>`+plans.map((x,i)=>`<div class="card opt"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
+<div class="m">Walk ${x.w1} min → ${x.legs.map(l=>`<span class="badge">${esc(l.rt)}</span>`).join(` → Walk ${x.wx} min → `)} → Walk ${x.w2} min</div>`+
+ x.legs.map((l,j)=>`${j?`<div class="m" style="margin:8px 0">↳ Transfer: walk ${x.wx} min to ${esc(l.from.name)}</div>`:''}<div class="stp"><b>${fmt(l.dep)}</b> Board line ${esc(l.rt)} at ${esc(l.from.name)}<div class="m">to ${esc(l.des)} · Bus ${esc(l.vid)} · ${l.n} stop${l.n>1?'s':''}</div><div style="margin-top:6px"><b>${fmt(l.arr)}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-plan="${i}|${j}" style="width:100%;margin-top:8px">Track ${x.legs.length>1?'leg '+(j+1):'this bus'}</button></div>`).join('')+`</div>`).join('')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-plan]');if(b){const[i,j]=b.dataset.plan.split('|'),l=plans[i].legs[j];track(l.vid,l.rt,l.des,{target:{id:l.to.id,n:l.to.name}})}});
 
 /* tracking */
 function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayers();
