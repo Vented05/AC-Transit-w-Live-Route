@@ -11,104 +11,205 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <title>Bus Tracker (unofficial)</title>
 <style>
-:root{--g:#18865F;--d:#006E50;--o:#EE8329;--bg:#000;--c:#222;--t:#fff;--m:#b9c2bd}
+:root{--g:#18865F;--o:#EE8329;--c:#222;--m:#b9c2bd;--hh:60px}
 *{box-sizing:border-box;font-family:-apple-system,Montserrat,Helvetica,Arial,sans-serif}
-html,body{margin:0;background:var(--bg);color:var(--t)}
-body{padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
-header{background:var(--g);padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
-header h1{margin:0;font-size:18px}header small{font-size:11px;opacity:.9}
-main{padding:12px 14px;max-width:720px;margin:auto}
+html,body{margin:0;background:#000;color:#fff}
+header{background:var(--g);height:calc(var(--hh) + env(safe-area-inset-top));padding:env(safe-area-inset-top) 16px 0;display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:20}
+.logo{font-style:italic;font-size:15px;font-weight:600}.logo b{font-size:24px;margin-right:4px}
+header small{margin-left:auto;font-size:11px;opacity:.9;text-align:right}
+nav button{background:none;border:0;color:#fff;font-weight:600;min-height:44px;padding:0 16px;border-radius:0;opacity:.85}
+nav button.on{opacity:1;box-shadow:inset 0 -3px 0 var(--o)}
+#bnav{display:none}
+#app{display:flex;height:calc(100dvh - var(--hh) - env(safe-area-inset-top))}
+#side{width:430px;flex:none;overflow:auto;padding:12px 14px}
+#mapwrap{flex:1;position:relative}#map{height:100%;background:#eee}
 .card{background:var(--c);border-radius:14px;padding:14px;margin:0 0 12px}
 .row{display:flex;align-items:center;gap:10px}.sp{flex:1}
-.rt{color:#3fd49a;font-size:26px;font-weight:700;min-width:44px}
-.m{color:var(--m);font-size:13px}
-button,input{font:inherit;color:inherit}
+.rt{color:#3fd49a;font-size:28px;font-weight:700;min-width:46px}
+.m{color:var(--m);font-size:13px;margin-top:4px}
+button,input,select{font:inherit;color:inherit}
 button{background:var(--g);border:0;border-radius:10px;padding:0 14px;min-height:44px;font-weight:600}
 button.o{background:var(--o);color:#111}button.g{background:#3a3f3c}
+.star{background:none;color:var(--o);font-size:28px;padding:0 6px}
 input{background:#111;border:1px solid #666;border-radius:10px;padding:0 12px;min-height:44px;width:100%}
-.eta{background:var(--g);border-radius:10px;padding:8px 12px;min-height:44px;font-size:18px;font-weight:700;text-align:left}
-.eta small{display:block;font-size:11px;font-weight:500}
-nav{position:fixed;bottom:0;left:0;right:0;background:var(--g);display:flex;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;border-radius:0;min-height:56px;font-size:12px;opacity:.8}
-nav button.on{opacity:1;color:var(--o)}
-#map{height:42vh;border-radius:14px;margin-bottom:12px}
-.banner{position:sticky;top:60px;z-index:6;background:var(--o);color:#111;border-radius:14px;padding:14px;margin-bottom:12px;font-weight:700}
-.banner.go{background:#e5384c;color:#fff;font-size:20px}
-.err{background:#4a1d22;border-radius:10px;padding:10px;margin-bottom:12px}
+input[type=radio]{width:auto;min-height:0}
+label{font-size:12px;color:var(--m);display:block;margin:8px 0 4px}
+.chips{display:flex;gap:10px;overflow-x:auto;margin-top:10px;scroll-snap-type:x proximity;padding-bottom:2px}
+.chip{flex:none;min-width:150px;display:flex;align-items:center;gap:10px;text-align:left;scroll-snap-align:start;min-height:50px}
+.chip b{font-size:20px}.chip span{font-size:12px}
+.ld{color:#6be39f;letter-spacing:1px;margin-left:auto;font-size:11px}
+.sug button{display:block;width:100%;text-align:left;background:#2c302d;border-radius:0;font-weight:500;font-size:13px;padding:8px 12px;min-height:40px}
+.alert{position:sticky;top:0;z-index:6;background:var(--o);color:#111;border-radius:14px;padding:14px;margin-bottom:12px;font-weight:700}
+.alert.go{background:#e5384c;color:#fff;font-size:20px}
+.err{background:#4a1d22;border-radius:10px;padding:10px;margin-bottom:12px;font-size:13px}
 .stp{padding:10px 0;border-bottom:1px solid #333}
+.opt{border:2px solid transparent}.badge{background:var(--g);border-radius:12px;padding:2px 9px;font-weight:700;font-size:13px}
+.ovc{position:absolute;left:16px;right:16px;bottom:16px;z-index:500;background:#1c1f1d;border-radius:14px;padding:14px 18px;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.pill{background:var(--o);color:#111;font-size:11px;font-weight:700;border-radius:10px;padding:3px 10px}
+.big{font-size:28px;font-weight:700;margin-top:8px}.big small{font-size:13px;font-weight:500;color:var(--m)}
+.bar{height:8px;background:#444b47;border-radius:4px;margin:10px 0 6px}.bar i{display:block;height:8px;background:var(--o);border-radius:4px}
+@media(max-width:899px){
+ header nav{display:none}header small{font-size:10px}
+ #bnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--g);padding-bottom:env(safe-area-inset-bottom);z-index:30}
+ #bnav button{flex:1;min-height:56px;font-size:12px}
+ #app{display:block;height:auto;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+ #side{width:auto;overflow:visible}
+ #mapwrap{display:none}body.mapon #mapwrap{display:block;height:42vh;position:sticky;top:calc(var(--hh) + env(safe-area-inset-top));z-index:10}
+ .up{display:none}.ovc{left:8px;right:8px;bottom:8px;padding:10px 14px}.big{font-size:22px;margin-top:4px}
+}
 </style></head><body>
-<header><h1 id="ttl">Nearby</h1><small>Unofficial · not an AC Transit product</small></header>
-<main id="v"></main>
-<nav><button data-t="nearby">Nearby</button><button data-t="search">Search</button><button data-t="favs">Favorites</button><button data-t="more">Settings</button></nav>
+<header><div class="logo"><b>AC</b>TRANSIT</div><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
+<div id="app"><aside id="side"><div id="v"></div></aside><div id="mapwrap"><div id="map"></div><div id="ov"></div></div></div>
+<nav id="bnav"></nav>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const B='https://api.actransit.org/transit/',$=s=>document.querySelector(s);
-let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,map,wake,watch;
+let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,wake,watch,me,meT=0,tab='home',prevTab='home',TR=null,P={mode:'now'},CARDS={},plans=[];
+const TABS=[['home','Home'],['favs','Favorites'],['search','Search'],['more','More']];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const g=(o,...k)=>{for(const x of k)if(o&&o[x]!=null)return o[x]};
+const H=(a,b)=>{const r=Math.PI/180,x=Math.sin((b.lat-a.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((b.lon-a.lon)*r/2)**2;return 41804462*Math.asin(Math.sqrt(x))};
+const pt=s=>{const m=/(\d{4})(\d\d)(\d\d) (\d\d):(\d\d)/.exec(s||'');return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]):null};
+const fmt=d=>(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')+(d.getHours()<12?'am':'pm');
+const mins=p=>p.prdctdn==='DUE'||p.prdctdn==='Due'?'Due':p.prdctdn+' min';
+const fk=f=>f.id+'|'+f.rt+'|'+f.dir;
+const load=s=>{const n={EMPTY:1,HALF_EMPTY:2,FULL:3}[s];return n?`<span class="ld" title="${esc(s)}">${'●'.repeat(n)}${'○'.repeat(3-n)}</span>`:''};
 async function api(p){if(!tok)throw Error('Add your API token in Settings first.');
  const r=await fetch(B+p+(p.includes('?')?'&':'?')+'token='+encodeURIComponent(tok));
  if(!r.ok){const t=(await r.text()).slice(0,160);throw Error('API '+r.status+' '+t)}return r.json()}
 async function bt(p){const j=await api(p);return j['bustime-response']||j}
 function poll(fn,ms){clearInterval(timer);fn();timer=setInterval(fn,ms)}
-function show(h,t){$('#v').innerHTML=h;if(t)$('#ttl').textContent=t}
-function fail(e){const d=document.createElement('div');d.className='err';d.textContent=e.message+(e.message.includes('Failed to fetch')?' (network or CORS blocked – see README)':'');$('#v').prepend(d)}
-const mins=p=>p.prdctdn==='DUE'?'Due':p.prdctdn+' min';
-function go(t){clearInterval(timer);if(map){map.remove();map=null}if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}
- document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
- ({nearby,search:searchV,favs:favsV,more})[t]()}
-document.querySelector('nav').onclick=e=>e.target.dataset.t&&go(e.target.dataset.t);
+function show(h){$('#v').innerHTML=h}
+function fail(e){document.querySelectorAll('.err').forEach(x=>x.remove());const d=document.createElement('div');d.className='err';d.textContent=e.message+(/fetch/i.test(e.message)?' (network or CORS blocked – see README)':'');$('#v').prepend(d)}
+function locate(){if(me&&Date.now()-meT<30000)return Promise.resolve(me);
+ return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(p=>{me={lat:p.coords.latitude,lon:p.coords.longitude};meT=Date.now();res(me)},()=>rej(Error('Location permission needed – allow it in Safari settings.')),{enableHighAccuracy:true,timeout:10000}))}
+async function nearStops(lat,lon,ft){let a,last;
+ for(const u of [`stops/${lat}/${lon}?distance=${ft}`,`stops/${lat}/${lon}?distance=${ft}&active=false`,`stops/${lat}/${lon}?distance=${ft}&active=true`]){try{a=await api(u);break}catch(e){last=e}}
+ if(!a)throw last;a=Array.isArray(a)?a:(a.Stops||a.stops||[]);
+ return a.map(s=>({id:String(s.StopId),name:s.Name,lat:s.Latitude,lon:s.Longitude}))}
 
-function more(){show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Get one by registering at api.actransit.org/transit.</p>
-<input id="tk" type="password" placeholder="Paste token" value="${esc(tok)}" aria-label="API token"><p><button id="sv">Save token</button></p></div>
-<div class="card m">Illustrative, unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Always follow posted signs and driver instructions.</div>`,'Settings');
- $('#sv').onclick=()=>{tok=$('#tk').value.trim();localStorage.tok=tok;$('#sv').textContent='Saved ✓'}}
+/* map */
+const map=L.map('map').setView([37.69,-122.1],12);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+let LG=L.layerGroup().addTo(map);
+const dot=(c,col,r=7)=>L.circleMarker([c.lat,c.lon],{radius:r,color:'#fff',weight:2,fillColor:col,fillOpacity:1});
+function mapStops(s){LG.clearLayers();s.forEach(x=>dot(x,'#18865F').bindTooltip(x.name).addTo(LG));
+ if(me)dot(me,'#1d5fd0',9).addTo(LG);const pts=s.map(x=>[x.lat,x.lon]);if(me)pts.push([me.lat,me.lon]);if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:16})}
 
-function stopList(a){return a.length?a.map(s=>{const id=g(s,'Id','StopId','id','stopId'),n=g(s,'Name','name','StopName');
- return `<div class="card row"><div class="sp"><b>${esc(n)}</b><div class="m">Stop ${esc(id)}</div></div><button data-id="${esc(id)}" data-n="${esc(n)}">Arrivals</button></div>`}).join(''):'<div class="card m">No stops found.</div>'}
-function wireStops(){$('#v').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>stopV(b.dataset.id,b.dataset.n))}
+/* nav */
+function drawNav(){const h=TABS.map(([k,n])=>`<button data-t="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');$('#hn').innerHTML=h;$('#bnav').innerHTML=h}
+function go(t){clearInterval(timer);TR=null;LG.clearLayers();$('#ov').innerHTML='';document.body.classList.remove('mapon');
+ if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}if(wake){wake.release().catch(()=>{});wake=null}
+ tab=t;drawNav();({home,favs:favsV,search:searchV,more})[t]();setTimeout(()=>map.invalidateSize(),60)}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t)go(t.dataset.t)});
 
-function nearby(){show('<div class="card m">Finding stops near you…</div>','Nearby');
- navigator.geolocation.getCurrentPosition(async p=>{const la=p.coords.latitude,lo=p.coords.longitude;let a,last;
-  for(const u of [`stops/${la}/${lo}?distance=1500&active=true`,`stops/${la}/${lo}/1500/true/`,`stops/${la}/${lo}?distance=1500`]){try{a=await api(u);break}catch(e){last=e}}
-  if(!a){show('');return fail(last)}
-  a=Array.isArray(a)?a:(a.Stops||a.stops||[]);show(stopList(a),'Nearby');wireStops()},()=>{show('');fail(Error('Location permission needed. Use Search by stop ID instead.'))},{enableHighAccuracy:true})}
+/* cards (shared by Home + Favorites) */
+const chip=p=>`<button class="chip" data-v="${esc(p.vid)}" data-r="${esc(p.rt)}" data-d="${esc(p.des)}"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="2" width="14" height="14" rx="3" fill="#fff"/><rect x="5" y="5" width="10" height="4" fill="#18865F"/><circle cx="6.500" cy="13" r="1.200" fill="#18865F"/><circle cx="13.500" cy="13" r="1.200" fill="#18865F"/></svg><span>${esc(p.vid)}</span><b>${mins(p)}</b>${load(p.psgld)}</button>`;
+const card=c=>{const k=fk(c),on=favs.some(f=>fk(f)===k),d=me&&c.lat?(H(me,c)/5280).toFixed(1)+' miles':'';
+ return `<div class="card"><div class="row"><div class="rt">${esc(c.rt)}</div><b class="sp">→ ${esc(c.dir)}</b><button class="star" data-star="${esc(k)}" aria-label="Toggle favorite">${on?'★':'☆'}</button></div><div class="m">Stop: ${esc(c.name)} (${esc(c.id)})</div><div class="m">${d}</div><div class="chips">${c.p.length?c.p.map(chip).join(''):'<span class="m">No upcoming buses</span>'}</div></div>`};
+async function cardsFor(stops,el,o={}){const G=new Map(),S={};stops.forEach(s=>S[s.id]=s);
+ (o.favs||[]).forEach(f=>G.set(fk(f),{...f,p:[]}));const prd=[];
+ for(let i=0;i<stops.length;i+=10){try{prd.push(...((await bt('actrealtime/prediction?stpid='+stops.slice(i,i+10).map(s=>s.id).join(','))).prd||[]))}catch(e){fail(e)}}
+ prd.forEach(p=>{const s=S[p.stpid]||{},k=p.stpid+'|'+p.rt+'|'+p.rtdir;if(o.favs&&!G.has(k))return;
+  if(!G.has(k))G.set(k,{id:p.stpid,name:p.stpnm,lat:s.lat,lon:s.lon,rt:p.rt,dir:p.rtdir,p:[]});G.get(k).p.push(p)});
+ let a=[...G.values()];if(!o.favs&&me)a.sort((x,y)=>H(me,x)-H(me,y));
+ a.forEach(c=>CARDS[fk(c)]=c);el.innerHTML=a.length?a.map(card).join(''):'<div class="card m">No upcoming buses found.</div>'}
+$('#v').addEventListener('click',async e=>{const c=e.target.closest('.chip'),s=e.target.closest('[data-star]'),g=e.target.closest('[data-gi]');
+ if(c)track(c.dataset.v,c.dataset.r,c.dataset.d);
+ if(g&&TR)TR.set(g.dataset.gi,g.dataset.gn);
+ if(s){const k=s.dataset.star,f=CARDS[k];if(!f)return;const on=favs.some(x=>fk(x)===k);
+  favs=on?favs.filter(x=>fk(x)!==k):[...favs,{id:f.id,name:f.name,lat:f.lat,lon:f.lon,rt:f.rt,dir:f.dir}];
+  localStorage.favs=JSON.stringify(favs);s.textContent=on?'☆':'★';if(tab==='favs'&&on)favsV()}
+ if(e.target.id==='sg'){const id=$('#si').value.trim();if(!id)return;
+  try{const x=(await bt('actrealtime/stop?stpid='+encodeURIComponent(id))).stops?.[0];
+   const st=x?{id:String(x.stpid),name:x.stpnm,lat:+x.lat,lon:+x.lon}:{id,name:'Stop '+id};await cardsFor([st],$('#lk'))}catch(er){fail(er)}}});
 
-function searchV(){show(`<div class="card"><b>Stop ID</b><p class="m">The 5-digit number on the stop sign, e.g. 52711.</p><input id="sid" inputmode="numeric" placeholder="Stop ID" aria-label="Stop ID"><p><button id="gs">Show arrivals</button></p></div>`,'Search');
- $('#gs').onclick=()=>{const i=$('#sid').value.trim();i&&stopV(i,'Stop '+i)}}
+function home(){show(`<div id="cl"><div class="card m">Finding stops near you…</div></div><div class="card"><b>Look up a stop</b><div class="row" style="margin-top:8px"><input id="si" inputmode="numeric" placeholder="Stop ID, e.g. 52711" aria-label="Stop ID"><button id="sg">Go</button></div></div><div id="lk"></div>`);
+ poll(async()=>{try{const m=await locate(),s=(await nearStops(m.lat,m.lon,1500)).slice(0,10);mapStops(s);await cardsFor(s,$('#cl'));
+  document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){$('#cl').innerHTML='';fail(e)}},20000)}
+function favsV(){show('<div id="cl"></div>');
+ poll(async()=>{if(!favs.length){$('#cl').innerHTML='<div class="card m">No favorites yet. Tap ☆ on a route card on the Home tab.</div>';return}
+  try{const u={};favs.forEach(f=>u[f.id]=f);await cardsFor(Object.values(u),$('#cl'),{favs});document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){fail(e)}},20000)}
 
-function favsV(){show(favs.length?favs.map(f=>`<div class="card row"><div class="sp"><b>${esc(f.n)}</b><div class="m">Stop ${esc(f.id)}</div></div><button data-id="${esc(f.id)}" data-n="${esc(f.n)}">Arrivals</button></div>`).join(''):'<div class="card m">No favorites yet. Open a stop and tap ☆.</div>','Favorites');wireStops()}
+/* trip planner */
+const geo=async q=>{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&viewbox=-122.6,38.1,-121.6,37.2&bounded=1&q='+encodeURIComponent(q));
+ return(await r.json()).map(x=>({name:x.display_name.split(',').slice(0,3).join(','),lat:+x.lat,lon:+x.lon}))};
+async function resolve(k){const el=$('#p'+k),v=el.value.trim();
+ if(!v){if(k==='f')return await locate();return null}
+ if(P[k]&&P[k].name===v)return P[k];
+ if(/^\d{4,6}$/.test(v)){const x=(await bt('actrealtime/stop?stpid='+v)).stops?.[0];if(!x)throw Error('Stop '+v+' not found.');return P[k]={name:x.stpnm,lat:+x.lat,lon:+x.lon}}
+ const r=(await geo(v))[0];if(!r)throw Error('Couldn’t find “'+v+'” in the Bay Area.');el.value=r.name;return P[k]=r}
+let sugT;
+function sug(k){const el=$('#p'+k);el.oninput=()=>{clearTimeout(sugT);const v=el.value.trim(),l=$('#s'+k);P[k]=null;l.innerHTML='';if(v.length<3||/^\d+$/.test(v))return;
+ sugT=setTimeout(async()=>{try{const r=await geo(v);l.innerHTML=r.map((x,i)=>`<button data-i="${i}">${esc(x.name)}</button>`).join('');
+  l.onclick=ev=>{const b=ev.target.closest('button');if(!b)return;P[k]=r[b.dataset.i];el.value=P[k].name;l.innerHTML=''}}catch(e){}},600)}}
+function searchV(){show(`<div class="card"><label for="pf">From</label><input id="pf" placeholder="Current location" value="${esc(P.f?.name||'')}"><div class="sug" id="sf"></div>
+<label for="pt">To</label><input id="pt" placeholder="Address, place or stop ID" value="${esc(P.t?.name||'')}"><div class="sug" id="st"></div>
+<div class="row" style="margin:12px 0;flex-wrap:wrap"><label style="margin:0"><input type="radio" name="m" value="now" ${P.mode==='now'?'checked':''}> Leave now</label><label style="margin:0"><input type="radio" name="m" value="at" ${P.mode==='at'?'checked':''}> Depart at</label><input type="time" id="tm" aria-label="Departure time" style="width:140px" value="${esc(P.tm||'')}"></div>
+<button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
+ sug('f');sug('t');document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
+ $('#go').onclick=plan;if(plans.length)drawPlans()}
+async function plan(){const res=$('#res');res.innerHTML='<div class="card m">Planning…</div>';
+ try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
+  let t0=new Date();if(P.mode==='at'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
+  const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,2000),nearStops(d.lat,d.lon,2500)]);
+  if(!os.length||!ds.length)throw Error('No bus stops within walking distance of the '+(os.length?'destination':'start')+'.');
+  const om={},dm={};os.slice(0,10).forEach(s=>{s.w=Math.ceil(H(o,s)/264);om[s.id]=s});ds.forEach(s=>dm[s.id]=s);
+  const prd=((await bt('actrealtime/prediction?stpid='+Object.keys(om).join(','))).prd||[]).map(p=>({...p,dep:pt(p.prdtm)}))
+   .filter(p=>p.dep&&p.dep>=new Date(t0.getTime()+om[p.stpid].w*6e4)).sort((a,b)=>a.dep-b.dep);
+  const seen=new Set(),cand=[];prd.forEach(p=>{if(!seen.has(p.vid)&&cand.length<10){seen.add(p.vid);cand.push(p)}});
+  const rs=await Promise.allSettled(cand.map(p=>bt('actrealtime/prediction?vid='+p.vid)));const out=[];
+  rs.forEach((r,i)=>{if(r.status!=='fulfilled')return;const p=cand[i];let best;
+   (r.value.prd||[]).filter(q=>+q.seq>+p.seq&&dm[q.stpid]&&pt(q.prdtm)).forEach(q=>{const a=pt(q.prdtm),w=Math.ceil(H(dm[q.stpid],d)/264),end=new Date(a.getTime()+w*6e4);if(!best||end<best.end)best={q,a,w,end}});
+   if(best){const w1=om[p.stpid].w;out.push({rt:p.rt,des:p.des,vid:p.vid,ob:om[p.stpid],board:p.dep,w1,alight:best.q,a:best.a,w2:best.w,end:best.end,start:new Date(p.dep.getTime()-w1*6e4),n:+best.q.seq-+p.seq})}});
+  plans=out.sort((a,b)=>a.end-b.end).slice(0,6);P.o=o;P.d=d;
+  if(!plans.length){res.innerHTML=`<div class="card m">No direct bus found${P.mode==='at'?' for that time. Live predictions only reach a short time ahead; schedule-based search for later times isn’t built yet':''}. Transfers aren’t supported yet.</div>`;return}
+  drawPlans()}catch(e){res.innerHTML='';fail(e)}}
+function drawPlans(){const o=P.o,d=P.d;LG.clearLayers();dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);
+ plans.forEach(x=>dot(x.ob,'#EE8329').addTo(LG));map.fitBounds([[o.lat,o.lon],[d.lat,d.lon]],{padding:[50,50]});
+ $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Direct routes · live predictions · estimates only</div></div>`+plans.map((x,i)=>`<div class="card opt"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
+<div class="m">Walk ${x.w1} min → <span class="badge">${esc(x.rt)}</span> → Walk ${x.w2} min</div>
+<div class="stp"><b>${fmt(x.board)}</b> Board at ${esc(x.ob.name)}<div class="m">Line ${esc(x.rt)} to ${esc(x.des)} · Bus ${esc(x.vid)} · ${x.n} stop${x.n>1?'s':''}</div></div>
+<div class="stp" style="border:0"><b>${fmt(x.a)}</b> Get off at ${esc(x.alight.stpnm)}</div>
+<button class="o" data-plan="${i}" style="width:100%">Track this bus</button></div>`).join('')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-plan]');if(b){const x=plans[b.dataset.plan];track(x.vid,x.rt,x.des,{target:{id:x.alight.stpid,n:x.alight.stpnm}})}});
 
-function stopV(id,name){const isF=()=>favs.some(f=>f.id==id);
- show(`<div class="card row"><div class="sp"><b>${esc(name)}</b><div class="m">Stop ${esc(id)}</div></div><button class="g" id="fv" aria-label="Toggle favorite">${isF()?'★':'☆'}</button></div><div id="pr"></div>`,'Arrivals');
- $('#fv').onclick=()=>{favs=isF()?favs.filter(f=>f.id!=id):[...favs,{id,n:name}];localStorage.favs=JSON.stringify(favs);$('#fv').textContent=isF()?'★':'☆'};
- poll(async()=>{try{const x=await bt(`actrealtime/prediction?stpid=${encodeURIComponent(id)}&top=8`);const a=x.prd||[];
-  $('#pr').innerHTML=a.length?a.map(p=>`<div class="card row"><div class="rt">${esc(p.rt)}</div><div class="sp"><b>To ${esc(p.des)}</b><div class="m">Bus ${esc(p.vid)}</div></div><button class="eta" data-v="${esc(p.vid)}" data-r="${esc(p.rt)}" data-d="${esc(p.des)}">${mins(p)}<small>Track</small></button></div>`).join(''):'<div class="card m">No upcoming arrivals.</div>';
-  $('#pr').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>track(b.dataset.v,b.dataset.r,b.dataset.d))}catch(e){fail(e)}},20000)}
-
-function track(vid,rt,des){let target=JSON.parse(localStorage.target||'null'),alerted=false,seen=false,line,bus,me;
- if(target&&target.vid!=vid)target=null;
- show(`<div id="bn"></div><div id="map"></div><div class="card"><b>Line ${esc(rt)} to ${esc(des)}</b><div class="m">Bus ${esc(vid)} · tap “Get off here” on your stop</div></div><div class="card" id="st"></div>`,'Tracking');
- map=L.map('map').setView([37.75,-122.1],13);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+/* tracking */
+function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayers();
+ let target=opt.target?{vid,...opt.target}:JSON.parse(localStorage.target||'null');if(target&&target.vid!=vid)target=null;
+ if(opt.target)localStorage.target=JSON.stringify(target);
+ let alerted=false,seen=false,bus,len=0,line,me2,first=true;
+ show(`<div id="al"></div><button class="g" id="bk">← Back</button><div class="card" style="margin-top:12px"><b>Line ${esc(rt)} to ${esc(des)}</b><div class="m">Bus ${esc(vid)} · tap “Get off here” on your stop</div></div><div class="card" id="stl"></div>`);
+ $('#bk').onclick=()=>go(prevTab);document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
- watch=navigator.geolocation.watchPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];me?me.setLatLng(c):me=L.circleMarker(c,{radius:8,color:'#fff',fillColor:'#1d5fd0',fillOpacity:1}).addTo(map)});
- const banner=(h,c)=>{$('#bn').innerHTML=h?`<div class="banner ${c||''}">${h}</div>`:''};
- const fire=()=>{alerted=true;const m=`Get off next: ${target.n}`;banner('🔔 '+m,'go');if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
+ watch=navigator.geolocation.watchPosition(p=>{const c={lat:p.coords.latitude,lon:p.coords.longitude};me2?me2.setLatLng([c.lat,c.lon]):me2=dot(c,'#1d5fd0',9).addTo(map)});
+ const banner=(h,c)=>{$('#al').innerHTML=h?`<div class="alert ${c||''}">${h}</div>`:''};
+ const fire=()=>{alerted=true;banner('🔔 Get off next: '+esc(target.n),'go');if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
   if('Notification'in window&&Notification.permission==='granted')new Notification('Time to get off',{body:target.n,requireInteraction:true})};
- poll(async()=>{try{
-  const v=(await bt('actrealtime/vehicle?vid='+vid)).vehicle?.[0];
-  if(v){const ll=[+v.lat,+v.lon];bus?bus.setLatLng(ll):(bus=L.marker(ll,{icon:L.divIcon({html:`<div style="background:#1c1b4d;color:#fff;border:3px solid #EE8329;border-radius:14px;padding:3px 8px;font-weight:700">${esc(rt)}</div>`,className:''})}).addTo(map),map.setView(ll,15));
-   if(!line&&v.pid){bt('actrealtime/pattern?pid='+v.pid).then(r=>{const pts=r.ptr?.[0]?.pt;if(pts&&map)line=L.polyline(pts.map(q=>[+q.lat,+q.lon]),{color:'#EE8329',weight:6}).addTo(map)}).catch(()=>{})}}
+ TR={set(id,n){target={vid,id,n};localStorage.target=JSON.stringify(target);alerted=false;seen=false;
+  if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();tick()}};
+ async function tick(){try{
+  const v=(await bt('actrealtime/vehicle?vid='+vid)).vehicle?.[0];let pct=null;
+  if(v){const c={lat:+v.lat,lon:+v.lon};
+   if(bus)bus.setLatLng([c.lat,c.lon]);else bus=L.marker([c.lat,c.lon],{icon:L.divIcon({html:`<div style="background:#1c1b4d;color:#fff;border:3px solid #EE8329;border-radius:14px;padding:3px 8px;font-weight:700;white-space:nowrap">${esc(rt)} · ${esc(vid)}</div>`,className:''})}).addTo(map);
+   if(first){map.setView([c.lat,c.lon],15);first=false}
+   if(!line&&v.pid){line=1;bt('actrealtime/pattern?pid='+v.pid).then(r=>{const p=r.ptr?.[0];if(!p)return;len=+p.ln||0;
+    L.polyline(p.pt.map(q=>[+q.lat,+q.lon]),{color:'#EE8329',weight:6}).addTo(LG);bus.addTo(map)}).catch(()=>{})}
+   if(len&&v.pdist!=null)pct=Math.min(100,v.pdist/len*100)}
   const a=(await bt('actrealtime/prediction?vid='+vid)).prd||[];
-  $('#st').innerHTML='<b>Upcoming stops</b>'+a.slice(0,12).map(p=>`<div class="stp row"><div class="sp"><b>${esc(p.stpnm)}</b><div class="m">Stop ${esc(p.stpid)} · ${mins(p)}</div></div><button class="${target&&target.id==p.stpid?'o':'g'}" data-i="${esc(p.stpid)}" data-n="${esc(p.stpnm)}">${target&&target.id==p.stpid?'Your stop':'Get off here'}</button></div>`).join('');
-  $('#st').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{target={vid,id:b.dataset.i,n:b.dataset.n};localStorage.target=JSON.stringify(target);alerted=false;seen=false;
-   if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();poll_now()});
+  $('#stl').innerHTML='<b>Upcoming stops</b>'+a.slice(0,15).map(p=>{const t=target&&target.id==p.stpid;return `<div class="stp row"><div class="sp"><b>${esc(p.stpnm)}</b><div class="m">Stop ${esc(p.stpid)} · ${mins(p)}</div></div><button class="${t?'o':'g'}" data-gi="${esc(p.stpid)}" data-gn="${esc(p.stpnm)}">${t?'Your stop':'Get off here'}</button></div>`}).join('');
+  let ref=a[0],label='next stop';
   if(target){const t=a.find(p=>p.stpid==target.id);
-   if(t){seen=true;const m=t.prdctdn==='DUE'?0:+t.prdctdn;
+   if(t){seen=true;ref=t;label=target.n;const m=t.prdctdn==='DUE'||t.prdctdn==='Due'?0:+t.prdctdn;
     if(m<=2&&!alerted)fire();else if(!alerted)banner(`Get off at <b>${esc(target.n)}</b> in ${mins(t)}`)}
-   else if(seen){banner('You have passed '+esc(target.n));localStorage.removeItem('target')}}
-  else banner('')}catch(e){fail(e)}},10000);
- function poll_now(){clearInterval(timer);timer=null;track(vid,rt,des)}}
-go('nearby');
+   else if(seen){banner('You have passed '+esc(target.n));localStorage.removeItem('target');target=null}}else banner('');
+  if(ref)$('#ov').innerHTML=`<div class="ovc"><div class="row"><span class="pill">● FOLLOWING TRIP</span><span class="m" style="margin:0">Bus ${esc(vid)} · Line ${esc(rt)} to ${esc(des)}</span></div><div class="big">${mins(ref)}<small> to ${esc(label)}</small></div>${pct!=null?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}<div class="up m">Next: ${a.slice(0,2).map(p=>esc(p.stpnm)+' ('+mins(p)+')').join(' · ')}</div></div>`;
+  document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){fail(e)}}
+ poll(tick,10000)}
+
+function more(){show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
+<input id="tk" type="password" placeholder="Paste token" value="${esc(tok)}" aria-label="API token"><p><button id="sv">Save token</button></p></div>
+<div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>`);
+ $('#sv').onclick=()=>{tok=$('#tk').value.trim();localStorage.tok=tok;$('#sv').textContent='Saved ✓'}}
+go(tok?'home':'more');
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>

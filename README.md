@@ -1,15 +1,18 @@
 # Bus Tracker (unofficial)
-Static PWA using the AC Transit API (not affiliated with or endorsed by AC Transit).
+Responsive PWA for the AC Transit API (not affiliated with or endorsed by AC Transit).
 
 ## Deploy
-1. Push these files to a GitHub repo → Settings → Pages → deploy from `main` / root.
+1. Push these files to a GitHub repo → Settings → Pages → `main` / root.
 2. Open the Pages URL in Safari → Share → Add to Home Screen.
-3. In the app: Settings → paste your API token (saved only on your device).
+3. Settings tab → paste your API token (kept only on your device).
 
-## Use
-Nearby / Search by stop ID → Arrivals → tap an ETA to track the bus → "Get off here" on your stop. A banner, notification (home-screen app, iOS 16.4+) and screen wake-lock help you know when to get off.
+## Tabs
+- **Home** – nearby stops, one card per route/direction with a swipeable row of upcoming buses (bus #, minutes, passenger load). Tap a bus to track it.
+- **Favorites** – ☆ a card to save that route at that stop; same card UI.
+- **Search** – trip planner: From (defaults to current location) → To (address, place or stop ID), leave now or depart at a time. Tap "Track this bus" to follow it with an automatic get-off alert.
+- **Tracking** – map, route line, progress bar, upcoming stops, "Get off here" alert (banner, notification on Home Screen app, screen stays awake).
 
-## Caveats
-- Dynamic Island / Live Activities are native-iOS only (ActivityKit); a web app can't use them.
-- Written against the documented `actrealtime/*` and `stops/*` endpoints; response field names were not tested. If the browser blocks calls (CORS), route requests through a small proxy (e.g. a Cloudflare Worker) and change `B` in index.html.
-- Multi-leg trip planning isn't in the public API docs, so it isn't included.
+## Limits
+- Planner = direct (no-transfer) routes from live predictions; "depart at" works only within the prediction window. Walk times are straight-line estimates.
+- Dynamic Island / Live Activities require a native iOS app; not possible from a web app.
+- If Safari blocks API calls (CORS), route requests through a small proxy and change `B` in index.html.
