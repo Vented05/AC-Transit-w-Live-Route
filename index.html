@@ -82,8 +82,8 @@ function show(h){$('#v').innerHTML=h}
 function fail(e){document.querySelectorAll('.err').forEach(x=>x.remove());const d=document.createElement('div');d.className='err';d.textContent=e.message+(/fetch/i.test(e.message)?' (blocked by browser/CORS – set a Proxy URL in Settings, see README)':'');$('#v').prepend(d)}
 function locate(){if(me&&Date.now()-meT<30000)return Promise.resolve(me);
  return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(p=>{me={lat:p.coords.latitude,lon:p.coords.longitude};meT=Date.now();res(me)},()=>rej(Error('Location permission needed – allow it in Safari settings.')),{enableHighAccuracy:true,timeout:10000}))}
-async function nearStops(lat,lon,ft){let a,last;
- for(const u of [`stops/${lat}/${lon}?distance=${ft}`,`stops/${lat}/${lon}?distance=${ft}&active=false`,`stops/${lat}/${lon}?distance=${ft}&active=true`]){try{a=await api(u);break}catch(e){last=e}}
+async function nearStops(lat,lon,ft){let a,last;lat=(+lat).toFixed(5);lon=(+lon).toFixed(5);
+ for(const u of [`stops/${lat}/${lon}/?distance=${ft}`,`stops/${lat}/${lon}/?distance=${ft}&active=false`,`stops/${lat}/${lon}/?distance=${ft}&active=true`,`stops/${lat}/${lon}?distance=${ft}`]){try{a=await api(u);break}catch(e){last=e}}
  if(!a)throw last;a=Array.isArray(a)?a:(a.Stops||a.stops||[]);
  return a.map(s=>({id:String(s.StopId),name:s.Name,lat:s.Latitude,lon:s.Longitude}))}
 
