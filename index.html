@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#18865F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bus Tracker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<title>Bus Tracker (unofficial)</title>
+<style>
+:root{--g:#18865F;--d:#006E50;--o:#EE8329;--bg:#000;--c:#222;--t:#fff;--m:#b9c2bd}
+*{box-sizing:border-box;font-family:-apple-system,Montserrat,Helvetica,Arial,sans-serif}
+html,body{margin:0;background:var(--bg);color:var(--t)}
+body{padding:env(safe-area-inset-top) 0 calc(64px + env(safe-area-inset-bottom))}
+header{background:var(--g);padding:14px 16px;position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:18px}header small{font-size:11px;opacity:.9}
+main{padding:12px 14px;max-width:720px;margin:auto}
+.card{background:var(--c);border-radius:14px;padding:14px;margin:0 0 12px}
+.row{display:flex;align-items:center;gap:10px}.sp{flex:1}
+.rt{color:#3fd49a;font-size:26px;font-weight:700;min-width:44px}
+.m{color:var(--m);font-size:13px}
+button,input{font:inherit;color:inherit}
+button{background:var(--g);border:0;border-radius:10px;padding:0 14px;min-height:44px;font-weight:600}
+button.o{background:var(--o);color:#111}button.g{background:#3a3f3c}
+input{background:#111;border:1px solid #666;border-radius:10px;padding:0 12px;min-height:44px;width:100%}
+.eta{background:var(--g);border-radius:10px;padding:8px 12px;min-height:44px;font-size:18px;font-weight:700;text-align:left}
+.eta small{display:block;font-size:11px;font-weight:500}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--g);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;border-radius:0;min-height:56px;font-size:12px;opacity:.8}
+nav button.on{opacity:1;color:var(--o)}
+#map{height:42vh;border-radius:14px;margin-bottom:12px}
+.banner{position:sticky;top:60px;z-index:6;background:var(--o);color:#111;border-radius:14px;padding:14px;margin-bottom:12px;font-weight:700}
+.banner.go{background:#e5384c;color:#fff;font-size:20px}
+.err{background:#4a1d22;border-radius:10px;padding:10px;margin-bottom:12px}
+.stp{padding:10px 0;border-bottom:1px solid #333}
+</style></head><body>
+<header><h1 id="ttl">Nearby</h1><small>Unofficial · not an AC Transit product</small></header>
+<main id="v"></main>
+<nav><button data-t="nearby">Nearby</button><button data-t="search">Search</button><button data-t="favs">Favorites</button><button data-t="more">Settings</button></nav>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const B='https://api.actransit.org/transit/',$=s=>document.querySelector(s);
+let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,map,wake,watch;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const g=(o,...k)=>{for(const x of k)if(o&&o[x]!=null)return o[x]};
+async function api(p){if(!tok)throw Error('Add your API token in Settings first.');
+ const r=await fetch(B+p+(p.includes('?')?'&':'?')+'token='+encodeURIComponent(tok));
+ if(!r.ok){const t=(await r.text()).slice(0,160);throw Error('API '+r.status+' '+t)}return r.json()}
+async function bt(p){const j=await api(p);return j['bustime-response']||j}
+function poll(fn,ms){clearInterval(timer);fn();timer=setInterval(fn,ms)}
+function show(h,t){$('#v').innerHTML=h;if(t)$('#ttl').textContent=t}
+function fail(e){const d=document.createElement('div');d.className='err';d.textContent=e.message+(e.message.includes('Failed to fetch')?' (network or CORS blocked – see README)':'');$('#v').prepend(d)}
+const mins=p=>p.prdctdn==='DUE'?'Due':p.prdctdn+' min';
+function go(t){clearInterval(timer);if(map){map.remove();map=null}if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ ({nearby,search:searchV,favs:favsV,more})[t]()}
+document.querySelector('nav').onclick=e=>e.target.dataset.t&&go(e.target.dataset.t);
+
+function more(){show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Get one by registering at api.actransit.org/transit.</p>
+<input id="tk" type="password" placeholder="Paste token" value="${esc(tok)}" aria-label="API token"><p><button id="sv">Save token</button></p></div>
+<div class="card m">Illustrative, unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Always follow posted signs and driver instructions.</div>`,'Settings');
+ $('#sv').onclick=()=>{tok=$('#tk').value.trim();localStorage.tok=tok;$('#sv').textContent='Saved ✓'}}
+
+function stopList(a){return a.length?a.map(s=>{const id=g(s,'Id','StopId','id','stopId'),n=g(s,'Name','name','StopName');
+ return `<div class="card row"><div class="sp"><b>${esc(n)}</b><div class="m">Stop ${esc(id)}</div></div><button data-id="${esc(id)}" data-n="${esc(n)}">Arrivals</button></div>`}).join(''):'<div class="card m">No stops found.</div>'}
+function wireStops(){$('#v').querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>stopV(b.dataset.id,b.dataset.n))}
+
+function nearby(){show('<div class="card m">Finding stops near you…</div>','Nearby');
+ navigator.geolocation.getCurrentPosition(async p=>{const la=p.coords.latitude,lo=p.coords.longitude;let a,last;
+  for(const u of [`stops/${la}/${lo}?distance=1500&active=true`,`stops/${la}/${lo}/1500/true/`,`stops/${la}/${lo}?distance=1500`]){try{a=await api(u);break}catch(e){last=e}}
+  if(!a){show('');return fail(last)}
+  a=Array.isArray(a)?a:(a.Stops||a.stops||[]);show(stopList(a),'Nearby');wireStops()},()=>{show('');fail(Error('Location permission needed. Use Search by stop ID instead.'))},{enableHighAccuracy:true})}
+
+function searchV(){show(`<div class="card"><b>Stop ID</b><p class="m">The 5-digit number on the stop sign, e.g. 52711.</p><input id="sid" inputmode="numeric" placeholder="Stop ID" aria-label="Stop ID"><p><button id="gs">Show arrivals</button></p></div>`,'Search');
+ $('#gs').onclick=()=>{const i=$('#sid').value.trim();i&&stopV(i,'Stop '+i)}}
+
+function favsV(){show(favs.length?favs.map(f=>`<div class="card row"><div class="sp"><b>${esc(f.n)}</b><div class="m">Stop ${esc(f.id)}</div></div><button data-id="${esc(f.id)}" data-n="${esc(f.n)}">Arrivals</button></div>`).join(''):'<div class="card m">No favorites yet. Open a stop and tap ☆.</div>','Favorites');wireStops()}
+
+function stopV(id,name){const isF=()=>favs.some(f=>f.id==id);
+ show(`<div class="card row"><div class="sp"><b>${esc(name)}</b><div class="m">Stop ${esc(id)}</div></div><button class="g" id="fv" aria-label="Toggle favorite">${isF()?'★':'☆'}</button></div><div id="pr"></div>`,'Arrivals');
+ $('#fv').onclick=()=>{favs=isF()?favs.filter(f=>f.id!=id):[...favs,{id,n:name}];localStorage.favs=JSON.stringify(favs);$('#fv').textContent=isF()?'★':'☆'};
+ poll(async()=>{try{const x=await bt(`actrealtime/prediction?stpid=${encodeURIComponent(id)}&top=8`);const a=x.prd||[];
+  $('#pr').innerHTML=a.length?a.map(p=>`<div class="card row"><div class="rt">${esc(p.rt)}</div><div class="sp"><b>To ${esc(p.des)}</b><div class="m">Bus ${esc(p.vid)}</div></div><button class="eta" data-v="${esc(p.vid)}" data-r="${esc(p.rt)}" data-d="${esc(p.des)}">${mins(p)}<small>Track</small></button></div>`).join(''):'<div class="card m">No upcoming arrivals.</div>';
+  $('#pr').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>track(b.dataset.v,b.dataset.r,b.dataset.d))}catch(e){fail(e)}},20000)}
+
+function track(vid,rt,des){let target=JSON.parse(localStorage.target||'null'),alerted=false,seen=false,line,bus,me;
+ if(target&&target.vid!=vid)target=null;
+ show(`<div id="bn"></div><div id="map"></div><div class="card"><b>Line ${esc(rt)} to ${esc(des)}</b><div class="m">Bus ${esc(vid)} · tap “Get off here” on your stop</div></div><div class="card" id="st"></div>`,'Tracking');
+ map=L.map('map').setView([37.75,-122.1],13);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+ if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
+ watch=navigator.geolocation.watchPosition(p=>{const c=[p.coords.latitude,p.coords.longitude];me?me.setLatLng(c):me=L.circleMarker(c,{radius:8,color:'#fff',fillColor:'#1d5fd0',fillOpacity:1}).addTo(map)});
+ const banner=(h,c)=>{$('#bn').innerHTML=h?`<div class="banner ${c||''}">${h}</div>`:''};
+ const fire=()=>{alerted=true;const m=`Get off next: ${target.n}`;banner('🔔 '+m,'go');if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
+  if('Notification'in window&&Notification.permission==='granted')new Notification('Time to get off',{body:target.n,requireInteraction:true})};
+ poll(async()=>{try{
+  const v=(await bt('actrealtime/vehicle?vid='+vid)).vehicle?.[0];
+  if(v){const ll=[+v.lat,+v.lon];bus?bus.setLatLng(ll):(bus=L.marker(ll,{icon:L.divIcon({html:`<div style="background:#1c1b4d;color:#fff;border:3px solid #EE8329;border-radius:14px;padding:3px 8px;font-weight:700">${esc(rt)}</div>`,className:''})}).addTo(map),map.setView(ll,15));
+   if(!line&&v.pid){bt('actrealtime/pattern?pid='+v.pid).then(r=>{const pts=r.ptr?.[0]?.pt;if(pts&&map)line=L.polyline(pts.map(q=>[+q.lat,+q.lon]),{color:'#EE8329',weight:6}).addTo(map)}).catch(()=>{})}}
+  const a=(await bt('actrealtime/prediction?vid='+vid)).prd||[];
+  $('#st').innerHTML='<b>Upcoming stops</b>'+a.slice(0,12).map(p=>`<div class="stp row"><div class="sp"><b>${esc(p.stpnm)}</b><div class="m">Stop ${esc(p.stpid)} · ${mins(p)}</div></div><button class="${target&&target.id==p.stpid?'o':'g'}" data-i="${esc(p.stpid)}" data-n="${esc(p.stpnm)}">${target&&target.id==p.stpid?'Your stop':'Get off here'}</button></div>`).join('');
+  $('#st').querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{target={vid,id:b.dataset.i,n:b.dataset.n};localStorage.target=JSON.stringify(target);alerted=false;seen=false;
+   if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();poll_now()});
+  if(target){const t=a.find(p=>p.stpid==target.id);
+   if(t){seen=true;const m=t.prdctdn==='DUE'?0:+t.prdctdn;
+    if(m<=2&&!alerted)fire();else if(!alerted)banner(`Get off at <b>${esc(target.n)}</b> in ${mins(t)}`)}
+   else if(seen){banner('You have passed '+esc(target.n));localStorage.removeItem('target')}}
+  else banner('')}catch(e){fail(e)}},10000);
+ function poll_now(){clearInterval(timer);timer=null;track(vid,rt,des)}}
+go('nearby');
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
