@@ -63,7 +63,7 @@ label{font-size:12px;color:var(--m);display:block;margin:8px 0 4px}
 <nav id="bnav"></nav>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const B='https://api.actransit.org/transit/',$=s=>document.querySelector(s);
+const PX=(localStorage.proxy||'').trim().replace(/\/*$/,''),B=PX?PX+'/':'https://api.actransit.org/transit/',$=s=>document.querySelector(s);
 let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,wake,watch,me,meT=0,tab='home',prevTab='home',TR=null,P={mode:'now'},CARDS={},plans=[];
 const TABS=[['home','Home'],['favs','Favorites'],['search','Search'],['more','More']];
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -73,13 +73,13 @@ const fmt=d=>(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')+(d
 const mins=p=>p.prdctdn==='DUE'||p.prdctdn==='Due'?'Due':p.prdctdn+' min';
 const fk=f=>f.id+'|'+f.rt+'|'+f.dir;
 const load=s=>{const n={EMPTY:1,HALF_EMPTY:2,FULL:3}[s];return n?`<span class="ld" title="${esc(s)}">${'●'.repeat(n)}${'○'.repeat(3-n)}</span>`:''};
-async function api(p){if(!tok)throw Error('Add your API token in Settings first.');
- const r=await fetch(B+p+(p.includes('?')?'&':'?')+'token='+encodeURIComponent(tok));
+async function api(p){if(!tok&&!PX)throw Error('Add your API token in Settings first.');
+ const r=await fetch(B+p+(tok?(p.includes('?')?'&':'?')+'token='+encodeURIComponent(tok):''));
  if(!r.ok){const t=(await r.text()).slice(0,160);throw Error('API '+r.status+' '+t)}return r.json()}
 async function bt(p){const j=await api(p);return j['bustime-response']||j}
 function poll(fn,ms){clearInterval(timer);fn();timer=setInterval(fn,ms)}
 function show(h){$('#v').innerHTML=h}
-function fail(e){document.querySelectorAll('.err').forEach(x=>x.remove());const d=document.createElement('div');d.className='err';d.textContent=e.message+(/fetch/i.test(e.message)?' (network or CORS blocked – see README)':'');$('#v').prepend(d)}
+function fail(e){document.querySelectorAll('.err').forEach(x=>x.remove());const d=document.createElement('div');d.className='err';d.textContent=e.message+(/fetch/i.test(e.message)?' (blocked by browser/CORS – set a Proxy URL in Settings, see README)':'');$('#v').prepend(d)}
 function locate(){if(me&&Date.now()-meT<30000)return Promise.resolve(me);
  return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(p=>{me={lat:p.coords.latitude,lon:p.coords.longitude};meT=Date.now();res(me)},()=>rej(Error('Location permission needed – allow it in Safari settings.')),{enableHighAccuracy:true,timeout:10000}))}
 async function nearStops(lat,lon,ft){let a,last;
@@ -207,9 +207,10 @@ function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayer
  poll(tick,10000)}
 
 function more(){show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
-<input id="tk" type="password" placeholder="Paste token" value="${esc(tok)}" aria-label="API token"><p><button id="sv">Save token</button></p></div>
+<input id="tk" type="password" placeholder="Paste token (optional if your proxy holds it)" value="${esc(tok)}" aria-label="API token"></div>
+<div class="card"><b>Proxy URL (fixes “Failed to fetch”)</b><p class="m">Your Cloudflare Worker address, e.g. https://bus.yourname.workers.dev</p><input id="px" placeholder="https://…workers.dev" value="${esc(PX)}" aria-label="Proxy URL"><p><button id="sv">Save &amp; reload</button></p></div>
 <div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>`);
- $('#sv').onclick=()=>{tok=$('#tk').value.trim();localStorage.tok=tok;$('#sv').textContent='Saved ✓'}}
-go(tok?'home':'more');
+ $('#sv').onclick=()=>{localStorage.tok=$('#tk').value.trim();localStorage.proxy=$('#px').value.trim();location.reload()}}
+go(tok||PX?'home':'more');
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>

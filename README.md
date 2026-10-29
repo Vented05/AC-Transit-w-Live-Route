@@ -16,3 +16,8 @@ Responsive PWA for the AC Transit API (not affiliated with or endorsed by AC Tra
 - Planner = direct (no-transfer) routes from live predictions; "depart at" works only within the prediction window. Walk times are straight-line estimates.
 - Dynamic Island / Live Activities require a native iOS app; not possible from a web app.
 - If Safari blocks API calls (CORS), route requests through a small proxy and change `B` in index.html.
+
+## Fixing "Failed to fetch" (CORS proxy)
+1. Cloudflare dashboard → Workers & Pages → Create → Hello World → Deploy, then Edit code → paste `worker.js` → Deploy.
+2. Worker → Settings → Variables and Secrets: add secret `TOKEN` (your AC Transit key) and `ALLOW_ORIGIN` = `https://YOURNAME.github.io`.
+3. In the app: Settings → Proxy URL = your `*.workers.dev` address → Save. The token field can stay empty.
