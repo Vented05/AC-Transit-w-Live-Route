@@ -208,7 +208,9 @@ function favsV(){show('<div id="cl"></div>');
   try{const u={};favs.forEach(f=>u[f.id]=f);await cardsFor(Object.values(u),$('#cl'),{favs});document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){fail(e)}},20000)}
 
 /* trip planner */
-const geo=async q=>{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&viewbox=-122.6,38.1,-121.6,37.2&bounded=1&q='+encodeURIComponent(q));
+const geo=async q=>{if(PX){const f=me||{lat:37.68,lon:-122.08},r=await fetch(`${PX}/pelias/v1/autocomplete?api_key=&text=${encodeURIComponent(q)}&focus.point.lat=${f.lat}&focus.point.lon=${f.lon}&boundary.rect.min_lat=37.2445&boundary.rect.min_lon=-123.2&boundary.rect.max_lat=38.5026&boundary.rect.max_lon=-121`);
+  return((await r.json()).features||[]).map(x=>({name:x.properties.label||x.properties.name,lat:x.geometry.coordinates[1],lon:x.geometry.coordinates[0]}))}
+ const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&viewbox=-122.6,38.1,-121.6,37.2&bounded=1&q='+encodeURIComponent(q));
  return(await r.json()).map(x=>({name:(p=>{p[0]=p[0].split(';')[0];return p.slice(0,3).join(', ')})(x.display_name.split(',').map(t=>t.trim())),lat:+x.lat,lon:+x.lon}))};
 async function resolve(k){const el=$('#p'+k),v=el.value.trim();
  if(!v||(k==='f'&&v==='Current location')){if(k==='f')return await locate();return null}
@@ -243,9 +245,9 @@ async function stopSV(){$('#sb').innerHTML='<div class="card sk"></div>';
   filt(ALL,s=>s.name+' '+s.id,s=>`<b>${esc(s.name)}</b><div class="m">Stop ID: ${esc(s.id)}</div>`,shStop)}catch(e){fail(e)}}
 function planV(){$('#sb').innerHTML=(`<div class="card"><label for="pf">From</label><input id="pf" placeholder="Current location" value="${esc(P.f?.name||'Current location')}"><div class="sug" id="sf"></div>
 <label for="pt">To</label><input id="pt" placeholder="Address, place or stop ID" value="${esc(P.t?.name||'')}"><div class="sug" id="st"></div>
-<div class="row" style="margin:12px 0;flex-wrap:wrap"><label style="margin:0"><input type="radio" name="m" value="now" ${P.mode==='now'?'checked':''}> Leave now</label><label style="margin:0"><input type="radio" name="m" value="at" ${P.mode==='at'?'checked':''}> Depart at</label><input type="time" id="tm" aria-label="Departure time" style="width:140px" value="${esc(P.tm||'')}"></div>
+<div class="row" style="margin:12px 0;flex-wrap:wrap"><label style="margin:0"><input type="radio" name="m" value="now" ${P.mode==='now'?'checked':''}> Leave now</label><label style="margin:0"><input type="radio" name="m" value="at" ${P.mode==='at'?'checked':''}> Depart at</label><label style="margin:0"><input type="radio" name="m" value="arr" ${P.mode==='arr'?'checked':''}> Arrive by</label><input type="time" id="tm" aria-label="Departure time" style="width:140px" value="${esc(P.tm||'')}"></div>
 <button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
- sug('f');sug('t');$('#pf').onfocus=e=>e.target.select();document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
+ sug('f');sug('t');$('#pf').onfocus=e=>e.target.select();document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;if(P.mode==='now'){P.mode='at';document.querySelector('[name=m][value=at]').checked=true}};
  $('#go').onclick=plan;if(plans.length)drawPlans()}
 const SC={},WC={};
 async function walk(a,b){const k=[a.lat,a.lon,b.lat,b.lon].map(v=>(+v).toFixed(5)).join();if(WC[k])return WC[k];
@@ -256,7 +258,7 @@ async function walk(a,b){const k=[a.lat,a.lon,b.lat,b.lon].map(v=>(+v).toFixed(5
 
 async function coords(ids){const need=[...new Set(ids)].filter(i=>!SC[i]),ch=[];for(let i=0;i<need.length;i+=10)ch.push(need.slice(i,i+10));
  await Promise.all(ch.map(c=>bt('actrealtime/stop?stpid='+c.join(',')).then(r=>(r.stops||[]).forEach(x=>SC[x.stpid]={lat:+x.lat,lon:+x.lon})).catch(()=>{})))}
-async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">Planning (checking transfers can take a few seconds)…</div><div class="card sk"></div>';
+async function planLive(){const res=$('#res');res.innerHTML='<div class="card sk m">Planning (checking transfers can take a few seconds)…</div><div class="card sk"></div>';
  try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
   let t0=new Date();if(P.mode==='at'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
   const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,5000),nearStops(d.lat,d.lon,5000)]);
@@ -306,6 +308,40 @@ function selPlan(i){const x=plans[i],o=P.o,d=P.d;if(!x)return;document.querySele
   if(i1>i0+1){LG.removeLayer(ls[j]);L.polyline(pts.slice(i0,i1+1),{color:'#EE8329',weight:6,className:'rl'}).addTo(LG)}}).catch(()=>{})});
  [a0,a1,b0,b1].forEach(p=>p&&dot(p,'#EE8329',6).addTo(LG));
  map.fitBounds([o,d,a0,a1,b0,b1].filter(Boolean).map(p=>[p.lat,p.lon]),{padding:[50,50],maxZoom:16})}
+const dec=s=>{let i=0,la=0,lo=0,o=[];while(i<s.length){let b,sh=0,r=0;do{b=s.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);la+=r&1?~(r>>1):r>>1;sh=0;r=0;do{b=s.charCodeAt(i++)-63;r|=(b&31)<<sh;sh+=5}while(b>=32);lo+=r&1?~(r>>1):r>>1;o.push([la/1e5,lo/1e5])}return o};
+let ops=[],oSel=-1;
+const dur=ms=>Math.max(1,Math.round(ms/6e4)),dist=m=>m<160?Math.round(m*3.28084)+' feet':(m/1609.34).toFixed(1)+' miles';
+async function plan(){const res=$('#res');if(!PX)return planLive();
+ res.innerHTML='<div class="card sk m">Asking the trip planner…</div><div class="card sk"></div>';
+ try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
+  let t0=new Date();if(P.mode!=='now'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
+  const pad=n=>String(n).padStart(2,'0'),h12=t0.getHours()%12||12,
+   q=`fromPlace=${encodeURIComponent((o.name||'Current location')+'::'+o.lat+','+o.lon)}&toPlace=${encodeURIComponent((d.name||'Destination')+'::'+d.lat+','+d.lon)}&date=${t0.getFullYear()}-${pad(t0.getMonth()+1)}-${pad(t0.getDate())}&time=${h12}:${pad(t0.getMinutes())}${t0.getHours()<12?'am':'pm'}&arriveBy=${P.mode==='arr'}&mode=WALK,BUS,TRAM,RAIL,SUBWAY,FERRY&showIntermediateStops=true&maxWalkDistance=1609&optimize=QUICK&bannedAgencies=ACREALIGN&actmode=true&walkSpeed=1.34&ignoreRealtimeUpdates=false&numItineraries=6`;
+  const j=await(await fetch(`${PX}/otp1/otp/routers/default/plan?${q}`)).json();
+  if(j.error&&!j.plan)throw Error(j.error.msg||'No trip found.');
+  ops=(j.plan&&j.plan.itineraries)||[];P.o=o;P.d=d;
+  if(!ops.length){res.innerHTML='<div class="card m">No trips found. Try a different time or place.</div>';return}
+  drawOtp()}catch(e){res.innerHTML='';fail(Error('Official planner unavailable ('+e.message+') – showing live-bus estimate'));planLive()}}
+function selOtp(i){const x=ops[i];if(!x)return;oSel=i;document.querySelectorAll('.opt').forEach((e,k)=>e.classList.toggle('sel',k==i));LG.clearLayers();
+ const o=P.o,d=P.d,pts=[[o.lat,o.lon],[d.lat,d.lon]];dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);
+ x.legs.forEach(l=>{const g=dec(l.legGeometry.points);pts.push(...g);
+  if(l.mode==='WALK')L.polyline(g,{color:'#1d5fd0',weight:5,dashArray:'2 9',lineCap:'round'}).addTo(LG);
+  else{L.polyline(g,{color:'#'+(l.routeColor||'EE8329'),weight:7,className:'rl'}).addTo(LG);[l.from,l.to].forEach(p=>dot(p,'#fff',6).bindTooltip(p.name).addTo(LG))}});
+ map.fitBounds(pts,{padding:[50,50],maxZoom:16})}
+function drawOtp(){document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
+ $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${ops.length} option${ops.length>1?'s':''}</b><div class="m">AC Transit trip planner results · tap an option to see it on the map</div></div>`+ops.map((x,i)=>{
+  const fare=x.fare&&x.fare.fare&&x.fare.fare.regular?'$'+(x.fare.fare.regular.cents/100).toFixed(2):'';
+  const sum=x.legs.map(l=>l.mode==='WALK'?`<span class="m" style="display:inline">Walk ${dur(l.duration*1e3)}</span>`:`<span class="badge" style="background:#${l.routeColor||'18865F'};color:#${l.routeTextColor||'fff'}">${esc(l.route)}</span>`).join(' → ');
+  return `<div class="card opt" data-oo="${i}"><div class="row"><b class="sp">${fmt(new Date(x.startTime))}–${fmt(new Date(x.endTime))}</b><b style="font-size:18px">${dur(x.duration*1e3)} min</b></div><div class="m">${sum}</div><div class="m">${x.transfers?x.transfers+' transfer'+(x.transfers>1?'s':''):'Direct'}${fare?' · Fare '+fare:''}</div>`+
+  x.legs.map((l,j)=>l.mode==='WALK'?`<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Walk ${dur(l.duration*1e3)} min (${dist(l.distance)}) to ${esc(l.to.name)}</div>`:
+   `<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Board <span class="badge" style="background:#${l.routeColor||'18865F'};color:#${l.routeTextColor||'fff'}">${esc(l.route)}</span> at ${esc(l.from.name)}${l.realTime?` <span class="r" style="font-size:12px">LIVE${l.departureDelay>60?' · '+Math.round(l.departureDelay/60)+' min late':''}</span>`:''}<div class="m">to ${esc(l.headsign||'')} · ${(l.intermediateStops||[]).length+1} stops · ${dur(l.duration*1e3)} min</div><div style="margin-top:6px"><b>${fmt(new Date(l.endTime))}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-ot="${i}|${j}" style="width:100%;margin-top:8px">Track this bus</button></div>`).join('')+`</div>`}).join('');selOtp(0)}
+async function trackLeg(i,j,btn){const l=ops[i].legs[j];btn.textContent='Finding the bus…';
+ try{const prd=(await bt('actrealtime/prediction?stpid='+l.from.stopCode+'&rt='+encodeURIComponent(l.route))).prd||[],tid=(l.tripId||'').split(':')[1];
+  let p=prd.find(x=>x.tripid===tid||x.origtatripno===tid);if(!p)p=prd.map(x=>({x,t:Math.abs((pt(x.prdtm)||0)-l.startTime)})).sort((a,b)=>a.t-b.t)[0]?.x;
+  if(!p||Math.abs((pt(p.prdtm)||0)-l.startTime)>20*6e4)throw Error('That bus isn’t showing live yet – try again closer to departure.');
+  track(p.vid,p.rt,p.des,{target:{id:l.to.stopCode,n:l.to.name}})}catch(e){btn.textContent='Track this bus';fail(e)}}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-ot]');if(t){const[i,j]=t.dataset.ot.split('|');trackLeg(+i,+j,t);return}
+ const c=e.target.closest('[data-oo]');if(c)selOtp(+c.dataset.oo)});
 function drawPlans(){document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
  $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Tap an option to see its walk and bus path on the map · estimates only</div></div>`+plans.map((x,i)=>{const W=x.wk,G=x.legs,last=G[G.length-1];
   return `<div class="card opt" data-opt="${i}"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
