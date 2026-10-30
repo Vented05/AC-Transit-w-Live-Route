@@ -124,6 +124,8 @@ path.rl{stroke-dasharray:14 12;animation:flow 1s linear infinite}
  #bnav button{border-radius:18px;margin:6px 0;min-height:48px}#bnav button.on{background:rgba(255,255,255,.2);box-shadow:none}
  #app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}.live{display:none}}
 .opt.sel{border-color:var(--o)}.opt{cursor:pointer}
+#side{padding-top:0}#v{padding-top:12px}.seg{margin-top:-12px}
+@media(max-width:899px){.seg{top:calc(var(--hh) + env(safe-area-inset-top))}}
 </style></head><body>
 <div id="splash"><div class="lg">AC TRANSIT</div><div class="rd"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="4" width="60" height="26" rx="7" fill="#fff"/><rect x="8" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="24" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="40" y="9" width="14" height="9" rx="2" fill="#18865F"/><rect x="2" y="22" width="60" height="4" fill="#EE8329"/><circle cx="16" cy="32" r="5" fill="#222"/><circle cx="48" cy="32" r="5" fill="#222"/></svg></div><div style="font-size:12px;opacity:.85">Unofficial live bus tracker</div></div>
 <header><div class="logo"><b>AC</b>TRANSIT</div><span class="live"><i></i>LIVE</span><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
@@ -207,7 +209,7 @@ function favsV(){show('<div id="cl"></div>');
 
 /* trip planner */
 const geo=async q=>{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&viewbox=-122.6,38.1,-121.6,37.2&bounded=1&q='+encodeURIComponent(q));
- return(await r.json()).map(x=>({name:x.display_name.split(',').slice(0,3).join(','),lat:+x.lat,lon:+x.lon}))};
+ return(await r.json()).map(x=>({name:(p=>{p[0]=p[0].split(';')[0];return p.slice(0,3).join(', ')})(x.display_name.split(',').map(t=>t.trim())),lat:+x.lat,lon:+x.lon}))};
 async function resolve(k){const el=$('#p'+k),v=el.value.trim();
  if(!v||(k==='f'&&v==='Current location')){if(k==='f')return await locate();return null}
  if(P[k]&&P[k].name===v)return P[k];
@@ -268,8 +270,9 @@ async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">
   const A=[];rs.forEach((r,i)=>{if(r.status==='fulfilled')A.push({p:cand[i],l:(r.value.prd||[]).filter(q=>+q.seq>+cand[i].seq&&pt(q.prdtm))})});
   const leg=(p,q)=>({rt:p.rt,des:p.des,vid:p.vid,from:{id:p.stpid,name:p.stpnm},to:{id:q.stpid,name:q.stpnm},dep:pt(p.prdtm),arr:pt(q.prdtm),n:+q.seq-+p.seq});
   const out=[];
-  A.forEach(({p,l})=>{let best;l.filter(q=>dm[q.stpid]).forEach(q=>{const w=Math.ceil(H(dm[q.stpid],d)*1.25/264),end=new Date(pt(q.prdtm).getTime()+w*6e4);if(!best||end<best.end)best={q,w,end}});
-   if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.q)],w1,w2:best.w,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}});
+  A.forEach(({p,l})=>{const c=l.filter(q=>dm[q.stpid]).map(q=>{const w=Math.ceil(H(dm[q.stpid],d)*1.25/264);return{q,w,ft:H(dm[q.stpid],d),end:new Date(pt(q.prdtm).getTime()+w*6e4)}}),
+   pick=new Map();[...c].sort((a,b)=>a.end-b.end).slice(0,2).concat([...c].sort((a,b)=>a.ft-b.ft).slice(0,2)).forEach(x=>pick.set(x.q.stpid,x));
+   pick.forEach(best=>{const w1=om[p.stpid].w;out.push({legs:[leg(p,best.q)],w1,w2:best.w,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})})});
   try{const dp=(await bt('actrealtime/prediction?stpid='+ds.slice(0,10).map(s=>s.id).join(','))).prd||[];
    const bv=[...new Set(dp.map(x=>x.vid))].filter(v=>!seen.has(v)).slice(0,6);
    const br=await Promise.allSettled(bv.map(v=>bt('actrealtime/prediction?vid='+v)));const Bs=[];
@@ -281,20 +284,26 @@ async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">
      if(pt(bq.prdtm)<new Date(pt(a.prdtm).getTime()+(wx+2)*6e4))return;
      const w2=Math.ceil(H(dm[b.q.stpid],d)*1.25/264),end=new Date(pt(b.q.prdtm).getTime()+w2*6e4);if(!best||end<best.end)best={a,bq,wx,w2,end}}));
     if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.a),leg(best.bq,b.q)],wx:best.wx,w1,w2:best.w2,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}}))}catch(e){}
-  plans=out.sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid).join()===x.legs.map(l=>l.vid).join())===i).slice(0,8);P.o=o;P.d=d;
+  plans=out.sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid+l.to.id).join()===x.legs.map(l=>l.vid+l.to.id).join())===i).slice(0,16);P.o=o;P.d=d;
   const sc=id=>om[id]||dm[id]||SC[id];
   await Promise.all(plans.map(async x=>{const G=x.legs,F=G[0],T=G[G.length-1],a0=sc(F.from.id),a1=sc(F.to.id),b0=sc(T.from.id),b1=sc(T.to.id);
    x.wk=[await walk(o,a0)];if(G.length>1)x.wk.push(await walk(a1,b0));x.wk.push(await walk(b1,d));x.pts=[a0,a1,b0,b1];
    x.start=new Date(F.dep.getTime()-x.wk[0].min*6e4);x.end=new Date(T.arr.getTime()+x.wk[x.wk.length-1].min*6e4);
    x.ok=x.start>=new Date(t0.getTime()-6e4)&&(G.length<2||G[1].dep>=new Date(G[0].arr.getTime()+(x.wk[1].min+1)*6e4))}));
-  plans=plans.filter(x=>x.ok).sort((a,b)=>a.end-b.end).slice(0,6);
+  plans=plans.filter(x=>x.ok).sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid).join()===x.legs.map(l=>l.vid).join())===i).slice(0,6);
   if(!plans.length){res.innerHTML=`<div class="card m">No direct or one-transfer route found that you can reach in time${P.mode==='at'?' for that time. Live predictions only reach a short time ahead':''}.</div>`;return}
   drawPlans()}catch(e){res.innerHTML='';fail(e)}}
+const PT={};let curSel=-1;
+async function pat(vid){if(PT[vid])return PT[vid];const v=(await bt('actrealtime/vehicle?vid='+vid)).vehicle?.[0];if(!v||!v.pid)return null;
+ return PT[vid]=(await bt('actrealtime/pattern?pid='+v.pid)).ptr?.[0]?.pt?.map(q=>[+q.lat,+q.lon])||null}
+const near=(pts,c)=>{let bi=0,bd=1e12;pts.forEach((q,i)=>{const d=(q[0]-c.lat)**2+(q[1]-c.lon)**2;if(d<bd){bd=d;bi=i}});return bi};
 const wt=w=>`${w.min} min (${w.mi<0.1?Math.round(w.mi*5280)+' feet':w.mi.toFixed(1)+' miles'})${w.est?' est.':''}`;
 function selPlan(i){const x=plans[i],o=P.o,d=P.d;if(!x)return;document.querySelectorAll('.opt').forEach((e,k)=>e.classList.toggle('sel',k==i));LG.clearLayers();
  dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);const[a0,a1,b0,b1]=x.pts,multi=x.legs.length>1,
  wl=w=>L.polyline(w.pts,{color:'#1d5fd0',weight:5,dashArray:'2 9',lineCap:'round'}).addTo(LG),bl=(p,q)=>L.polyline([[p.lat,p.lon],[q.lat,q.lon]],{color:'#EE8329',weight:6,className:'rl'}).addTo(LG);
- wl(x.wk[0]);bl(a0,a1);if(multi){wl(x.wk[1]);bl(b0,b1)}wl(x.wk[x.wk.length-1]);
+ curSel=i;wl(x.wk[0]);const ls=[bl(a0,a1)];if(multi){wl(x.wk[1]);ls.push(bl(b0,b1))}wl(x.wk[x.wk.length-1]);
+ x.legs.forEach((l,j)=>{const p=j?[b0,b1]:[a0,a1];pat(l.vid).then(pts=>{if(!pts||curSel!==i)return;const i0=near(pts,p[0]),i1=near(pts,p[1]);
+  if(i1>i0+1){LG.removeLayer(ls[j]);L.polyline(pts.slice(i0,i1+1),{color:'#EE8329',weight:6,className:'rl'}).addTo(LG)}}).catch(()=>{})});
  [a0,a1,b0,b1].forEach(p=>p&&dot(p,'#EE8329',6).addTo(LG));
  map.fitBounds([o,d,a0,a1,b0,b1].filter(Boolean).map(p=>[p.lat,p.lon]),{padding:[50,50],maxZoom:16})}
 function drawPlans(){document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
