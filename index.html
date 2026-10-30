@@ -48,6 +48,38 @@ label{font-size:12px;color:var(--m);display:block;margin:8px 0 4px}
 .pill{background:var(--o);color:#111;font-size:11px;font-weight:700;border-radius:10px;padding:3px 10px}
 .big{font-size:28px;font-weight:700;margin-top:8px}.big small{font-size:13px;font-weight:500;color:var(--m)}
 .bar{height:8px;background:#444b47;border-radius:4px;margin:10px 0 6px}.bar i{display:block;height:8px;background:var(--o);border-radius:4px}
+@keyframes rise{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:none}}
+@keyframes drop{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
+@keyframes pop{40%{transform:scale(1.5) rotate(-12deg)}to{transform:none}}
+@keyframes shim{from{background-position:200% 0}to{background-position:-200% 0}}
+.card{animation:rise .38s cubic-bezier(.2,.8,.2,1) both}
+.card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}.card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}.card:nth-child(n+6){animation-delay:.25s}
+.noanim .card,.noanim .stp{animation:none}
+.alert{animation:drop .35s ease both}.ovc{animation:up .45s cubic-bezier(.2,.8,.2,1) both}.ovc.na{animation:none}
+.sk{min-height:84px;background:linear-gradient(100deg,#222 30%,#333 50%,#222 70%) 0 0/200% 100%;animation:shim 1.2s linear infinite}
+button{transition:transform .12s,filter .15s,background .2s}button:active{transform:scale(.95)}button:hover{filter:brightness(1.12)}
+.star.pop{animation:pop .4s ease}.chip{transition:transform .15s,filter .15s}.chip:active{transform:scale(.97)}
+nav button{transition:box-shadow .25s,opacity .25s}
+.busm{transition:transform 1.5s linear}.bar i{transition:width 1s ease}
+#v{animation:rise .3s ease both}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.seg{display:flex;margin:-12px -14px 12px;background:#000;border-bottom:1px solid #333;position:sticky;top:0;z-index:7}
+.seg button{flex:1;background:#000;border-radius:0;color:var(--m);box-shadow:inset 0 -3px 0 transparent}
+.seg button.on{color:#fff;box-shadow:inset 0 -3px 0 var(--o)}
+.ld{display:inline-flex;gap:1px;margin-left:auto}
+.tl{border-left:4px solid #555;margin:8px 0 0 8px;padding-left:20px}
+.ti{position:relative;padding:12px 0;display:flex;gap:10px;align-items:flex-start}
+.ti .d{position:absolute;left:-32px;top:18px;width:16px;height:16px;border-radius:8px;background:#777}.ti .d.t{background:var(--o)}
+.r{color:#ff5a4d;font-weight:700}.nx{background:#666;color:#fff;font-size:10px;font-weight:700;border-radius:6px;padding:6px 8px;text-align:center}
+.bm{width:44px;height:44px;border-radius:50%;border:3px solid var(--o);background:#1c1b4d;color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 0 5px rgba(238,131,41,.25)}
+.bm .ar{position:absolute;left:50%;top:50%;margin:-8px 0 0 -8px;border:8px solid transparent;border-bottom:14px solid var(--o);transform:rotate(var(--h,0deg)) translateY(-34px)}
+.lk{display:flex;justify-content:space-between;padding:14px;background:#222;border-radius:14px;margin-bottom:8px;color:#fff;text-decoration:none}
+.sh{color:var(--m);font-size:12px;font-weight:700;margin:16px 0 8px;letter-spacing:.5px}
+.li{display:block;width:100%;text-align:left;background:#222;border-radius:0;padding:12px 8px;border-bottom:1px solid #333;min-height:60px}
+body.mapfull #v>*:not(.seg){display:none}
+@media(max-width:899px){body.mapfull #mapwrap{height:calc(100dvh - 190px)}}
 @media(max-width:899px){
  header nav{display:none}header small{font-size:10px}
  #bnav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--g);padding-bottom:env(safe-area-inset-bottom);z-index:30}
@@ -73,7 +105,8 @@ const pt=s=>{const m=/(\d{4})(\d\d)(\d\d) (\d\d):(\d\d)/.exec(s||'');return m?ne
 const fmt=d=>(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')+(d.getHours()<12?'am':'pm');
 const mins=p=>p.prdctdn==='DUE'||p.prdctdn==='Due'?'Due':p.prdctdn+' min';
 const fk=f=>f.id+'|'+f.rt+'|'+f.dir;
-const load=s=>{const n={EMPTY:1,HALF_EMPTY:2,FULL:3}[s];return n?`<span class="ld" title="${esc(s)}">${'●'.repeat(n)}${'○'.repeat(3-n)}</span>`:''};
+const load=s=>{const n={EMPTY:1,HALF_EMPTY:2,FULL:3}[s];if(!n)return'';const c=n==1?'#2bd35f':n==2?'#f1c40f':'#ff5a4d';
+ return `<span class="ld" title="${esc(s)}">${[1,2,3].map(k=>{const f=k<=n?c:'#ccc';return `<svg width="11" height="22" viewBox="0 0 11 22"><circle cx="5.500" cy="4" r="3.500" fill="${f}"/><path d="M1 21V10c0-2 1.500-3.500 4.500-3.500S10 8 10 10v11z" fill="${f}"/></svg>`}).join('')}</span>`};
 async function api(p){if(!tok&&!PX)throw Error('Add your API token in Settings first.');
  const r=await fetch(B+p+(tok?(p.includes('?')?'&':'?')+'token='+encodeURIComponent(tok):''));
  if(!r.ok){const t=(await r.text()).slice(0,160);throw Error('API '+r.status+' '+t)}return r.json()}
@@ -98,7 +131,7 @@ function mapStops(s){LG.clearLayers();s.forEach(x=>dot(x,'#18865F').bindTooltip(
 
 /* nav */
 function drawNav(){const h=TABS.map(([k,n])=>`<button data-t="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');$('#hn').innerHTML=h;$('#bnav').innerHTML=h}
-function go(t){clearInterval(timer);TR=null;LG.clearLayers();$('#ov').innerHTML='';document.body.classList.remove('mapon');
+function go(t){clearInterval(timer);TR=null;LG.clearLayers();$('#ov').innerHTML='';document.body.classList.remove('mapon','mapfull');
  if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}if(wake){wake.release().catch(()=>{});wake=null}
  tab=t;drawNav();({home,favs:favsV,search:searchV,more})[t]();setTimeout(()=>map.invalidateSize(),60)}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t)go(t.dataset.t)});
@@ -113,18 +146,23 @@ async function cardsFor(stops,el,o={}){const G=new Map(),S={};stops.forEach(s=>S
  prd.forEach(p=>{const s=S[p.stpid]||{},k=p.stpid+'|'+p.rt+'|'+p.rtdir;if(o.favs&&!G.has(k))return;
   if(!G.has(k))G.set(k,{id:p.stpid,name:p.stpnm,lat:s.lat,lon:s.lon,rt:p.rt,dir:p.rtdir,p:[]});G.get(k).p.push(p)});
  let a=[...G.values()];if(!o.favs&&me)a.sort((x,y)=>H(me,x)-H(me,y));
- a.forEach(c=>CARDS[fk(c)]=c);el.innerHTML=a.length?a.map(card).join(''):'<div class="card m">No upcoming buses found.</div>'}
-$('#v').addEventListener('click',async e=>{const c=e.target.closest('.chip'),s=e.target.closest('[data-star]'),g=e.target.closest('[data-gi]');
+ a.forEach(c=>CARDS[fk(c)]=c);el.classList.toggle('noanim',!!el.dataset.done);el.dataset.done=1;el.innerHTML=a.length?a.map(card).join(''):'<div class="card m">No upcoming buses found.</div>'}
+$('#v').addEventListener('click',async e=>{const hm=e.target.closest('[data-hm]'),sq2=e.target.closest('[data-sq]'),pk=e.target.closest('[data-pick]');
+ if(hm){document.body.classList.toggle('mapon',hm.dataset.hm==='m');document.body.classList.toggle('mapfull',hm.dataset.hm==='m');document.querySelectorAll('[data-hm]').forEach(b=>b.classList.toggle('on',b===hm));setTimeout(()=>map.invalidateSize(),80)}
+ if(sq2){SQ=sq2.dataset.sq;searchV()}
+ if(pk&&PK)PK(pk.dataset.pick);
+ if(e.target.id==='tpb'){$('#tpf').innerHTML='<iframe title="AC Transit trip planner" src="https://tp.actransit.org/?standalone=true#/" allow="geolocation" style="width:100%;height:72vh;border:0;border-radius:14px;background:#fff"></iframe>'}
+const c=e.target.closest('.chip'),s=e.target.closest('[data-star]'),g=e.target.closest('[data-gi]');
  if(c)track(c.dataset.v,c.dataset.r,c.dataset.d);
  if(g&&TR)TR.set(g.dataset.gi,g.dataset.gn);
  if(s){const k=s.dataset.star,f=CARDS[k];if(!f)return;const on=favs.some(x=>fk(x)===k);
   favs=on?favs.filter(x=>fk(x)!==k):[...favs,{id:f.id,name:f.name,lat:f.lat,lon:f.lon,rt:f.rt,dir:f.dir}];
-  localStorage.favs=JSON.stringify(favs);s.textContent=on?'☆':'★';if(tab==='favs'&&on)favsV()}
+  localStorage.favs=JSON.stringify(favs);s.textContent=on?'☆':'★';s.classList.remove('pop');void s.offsetWidth;s.classList.add('pop');if(tab==='favs'&&on)favsV()}
  if(e.target.id==='sg'){const id=$('#si').value.trim();if(!id)return;
   try{const x=(await bt('actrealtime/stop?stpid='+encodeURIComponent(id))).stops?.[0];
    const st=x?{id:String(x.stpid),name:x.stpnm,lat:+x.lat,lon:+x.lon}:{id,name:'Stop '+id};await cardsFor([st],$('#lk'))}catch(er){fail(er)}}});
 
-function home(){show(`<div id="cl"><div class="card m">Finding stops near you…</div></div><div class="card"><b>Look up a stop</b><div class="row" style="margin-top:8px"><input id="si" inputmode="numeric" placeholder="Stop ID, e.g. 52711" aria-label="Stop ID"><button id="sg">Go</button></div></div><div id="lk"></div>`);
+function home(){show(`<div class="seg"><button data-hm="n" class="on">Nearby</button><button data-hm="m">Map</button></div><div id="cl"><div class="card sk"></div><div class="card sk"></div><div class="card sk"></div></div><div class="card"><b>Look up a stop</b><div class="row" style="margin-top:8px"><input id="si" inputmode="numeric" placeholder="Stop ID, e.g. 52711" aria-label="Stop ID"><button id="sg">Go</button></div></div><div id="lk"></div>`);
  poll(async()=>{try{const m=await locate(),s=(await nearStops(m.lat,m.lon,1500)).slice(0,10);mapStops(s);await cardsFor(s,$('#cl'));
   document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){$('#cl').innerHTML='';fail(e)}},20000)}
 function favsV(){show('<div id="cl"></div>');
@@ -135,7 +173,7 @@ function favsV(){show('<div id="cl"></div>');
 const geo=async q=>{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&viewbox=-122.6,38.1,-121.6,37.2&bounded=1&q='+encodeURIComponent(q));
  return(await r.json()).map(x=>({name:x.display_name.split(',').slice(0,3).join(','),lat:+x.lat,lon:+x.lon}))};
 async function resolve(k){const el=$('#p'+k),v=el.value.trim();
- if(!v){if(k==='f')return await locate();return null}
+ if(!v||(k==='f'&&v==='Current location')){if(k==='f')return await locate();return null}
  if(P[k]&&P[k].name===v)return P[k];
  if(/^\d{4,6}$/.test(v)){const x=(await bt('actrealtime/stop?stpid='+v)).stops?.[0];if(!x)throw Error('Stop '+v+' not found.');return P[k]={name:x.stpnm,lat:+x.lat,lon:+x.lon}}
  const r=(await geo(v))[0];if(!r)throw Error('Couldn’t find “'+v+'” in the Bay Area.');el.value=r.name;return P[k]=r}
@@ -143,16 +181,38 @@ let sugT;
 function sug(k){const el=$('#p'+k);el.oninput=()=>{clearTimeout(sugT);const v=el.value.trim(),l=$('#s'+k);P[k]=null;l.innerHTML='';if(v.length<3||/^\d+$/.test(v))return;
  sugT=setTimeout(async()=>{try{const r=await geo(v);l.innerHTML=r.map((x,i)=>`<button data-i="${i}">${esc(x.name)}</button>`).join('');
   l.onclick=ev=>{const b=ev.target.closest('button');if(!b)return;P[k]=r[b.dataset.i];el.value=P[k].name;l.innerHTML=''}}catch(e){}},600)}}
-function searchV(){show(`<div class="card"><label for="pf">From</label><input id="pf" placeholder="Current location" value="${esc(P.f?.name||'')}"><div class="sug" id="sf"></div>
+let SQ='line',PK=null,ALL=null;
+function searchV(){show(`<div class="seg">${[['line','Select line'],['stop','Select stop'],['plan','Plan trip']].map(([k,n])=>`<button data-sq="${k}" class="${k===SQ?'on':''}">${n}</button>`).join('')}</div><div id="sb"></div>`);
+ ({line:lineV,stop:stopSV,plan:()=>{planV();$('#sb').insertAdjacentHTML('beforeend','<div class="card"><b>AC Transit’s own trip planner</b><div class="m">Schedule-based, with transfers, same one the official app opens.</div><p><button id="tpb">Show it here</button> <a class="lk" style="display:inline-flex;margin:0 0 0 8px;padding:12px 14px" target="_blank" rel="noopener" href="https://tp.actransit.org/?standalone=true#/">Open in new tab</a></p><div id="tpf"></div></div>')}})[SQ]()}
+const list=(a,f)=>a.map((x,i)=>`<button class="li" data-pick="${i}">${f(x)}</button>`).join('');
+function filt(items,f,render,onpick){const el=$('#sb');el.innerHTML=`<input id="q" placeholder="Search" aria-label="Search" style="margin-bottom:10px"><div id="ls"></div>`;
+ const draw=()=>{const v=$('#q').value.toLowerCase(),a=items.filter(x=>f(x).toLowerCase().includes(v)).slice(0,60);$('#ls').innerHTML=list(a,render);PK=i=>onpick(a[i])};$('#q').oninput=draw;draw()}
+async function lineV(){$('#sb').innerHTML='<div class="card sk"></div>';
+ try{const x=await bt('actrealtime/line'),a=x.routes||x.lines||[];
+  filt(a,r=>r.rt+' '+(r.rtnm||''),r=>`<b style="font-size:20px">${esc(r.rt)}</b><div class="m">${esc(r.rtnm||'')}</div>`,dirV)}catch(e){fail(e)}}
+async function dirV(r){$('#sb').innerHTML='<div class="card sk"></div>';
+ try{const x=await bt('actrealtime/direction?rt='+encodeURIComponent(r.rt)),a=(x.directions||x.dirs||[]).map(d=>d.dir||d.name||d.id||d);
+  $('#sb').innerHTML=`<div class="sh">LINE ${esc(r.rt)} – SELECT DIRECTION</div>${list(a,d=>`<b>${esc(d)}</b>`)}`;PK=i=>stpV(r,a[i]);
+  bt('actrealtime/servicebulletin?rt='+encodeURIComponent(r.rt)).then(b=>{const sb=b.sb||b.bulletins||[];if(sb.length)$('#sb').insertAdjacentHTML('afterbegin',sb.slice(0,3).map(z=>`<div class="alert" style="font-size:13px">⚠ ${esc(z.sbj||z.nm||z.brf||'Service bulletin')}</div>`).join(''))}).catch(()=>{});
+  bt('actrealtime/detour?rt='+encodeURIComponent(r.rt)).then(b=>{const d=b.dtrs||b.detours||[];if(d.length)$('#sb').insertAdjacentHTML('afterbegin',`<div class="alert go" style="font-size:14px">Detour in effect on line ${esc(r.rt)}</div>`)}).catch(()=>{})}catch(e){fail(e)}}
+async function stpV(r,d){$('#sb').innerHTML='<div class="card sk"></div>';
+ try{const x=await bt(`actrealtime/stop?rt=${encodeURIComponent(r.rt)}&dir=${encodeURIComponent(d)}`),a=(x.stops||[]).map(s=>({id:String(s.stpid),name:s.stpnm,lat:+s.lat,lon:+s.lon}));
+  filt(a,s=>s.name+' '+s.id,s=>`<b>${esc(s.name)}</b><div class="m">Stop ID: ${esc(s.id)}</div>`,s=>shStop(s))}catch(e){fail(e)}}
+async function shStop(s){$('#sb').innerHTML=`<div class="sh">${esc(s.name)}</div><div id="lk"></div>`;clearInterval(timer);
+ const run=async()=>{try{await cardsFor([s],$('#lk'))}catch(e){fail(e)}};timer=setInterval(run,20000);run();if(s.lat){LG.clearLayers();dot(s,'#18865F',9).addTo(LG);map.setView([s.lat,s.lon],15)}}
+async function stopSV(){$('#sb').innerHTML='<div class="card sk"></div>';
+ try{if(!ALL){const x=await bt('actrealtime/allstops');ALL=(x.stops||[]).map(s=>({id:String(s.stpid),name:s.stpnm,lat:+s.lat,lon:+s.lon}))}
+  filt(ALL,s=>s.name+' '+s.id,s=>`<b>${esc(s.name)}</b><div class="m">Stop ID: ${esc(s.id)}</div>`,shStop)}catch(e){fail(e)}}
+function planV(){$('#sb').innerHTML=(`<div class="card"><label for="pf">From</label><input id="pf" placeholder="Current location" value="${esc(P.f?.name||'Current location')}"><div class="sug" id="sf"></div>
 <label for="pt">To</label><input id="pt" placeholder="Address, place or stop ID" value="${esc(P.t?.name||'')}"><div class="sug" id="st"></div>
 <div class="row" style="margin:12px 0;flex-wrap:wrap"><label style="margin:0"><input type="radio" name="m" value="now" ${P.mode==='now'?'checked':''}> Leave now</label><label style="margin:0"><input type="radio" name="m" value="at" ${P.mode==='at'?'checked':''}> Depart at</label><input type="time" id="tm" aria-label="Departure time" style="width:140px" value="${esc(P.tm||'')}"></div>
 <button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
- sug('f');sug('t');document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
+ sug('f');sug('t');$('#pf').onfocus=e=>e.target.select();document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
  $('#go').onclick=plan;if(plans.length)drawPlans()}
 const SC={};
 async function coords(ids){const need=[...new Set(ids)].filter(i=>!SC[i]),ch=[];for(let i=0;i<need.length;i+=10)ch.push(need.slice(i,i+10));
  await Promise.all(ch.map(c=>bt('actrealtime/stop?stpid='+c.join(',')).then(r=>(r.stops||[]).forEach(x=>SC[x.stpid]={lat:+x.lat,lon:+x.lon})).catch(()=>{})))}
-async function plan(){const res=$('#res');res.innerHTML='<div class="card m">Planning (checking transfers can take a few seconds)…</div>';
+async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">Planning (checking transfers can take a few seconds)…</div><div class="card sk"></div>';
  try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
   let t0=new Date();if(P.mode==='at'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
   const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,2000),nearStops(d.lat,d.lon,2500)]);
@@ -204,26 +264,30 @@ function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayer
  async function tick(){try{
   const v=(await bt('actrealtime/vehicle?vid='+vid)).vehicle?.[0];let pct=null;
   if(v){const c={lat:+v.lat,lon:+v.lon};
-   if(bus)bus.setLatLng([c.lat,c.lon]);else bus=L.marker([c.lat,c.lon],{icon:L.divIcon({html:`<div style="background:#1c1b4d;color:#fff;border:3px solid #EE8329;border-radius:14px;padding:3px 8px;font-weight:700;white-space:nowrap">${esc(rt)} · ${esc(vid)}</div>`,className:''})}).addTo(map);
+   if(bus)bus.setLatLng([c.lat,c.lon]);else bus=L.marker([c.lat,c.lon],{icon:L.divIcon({html:`<div class="bm"><i class="ar"></i>${esc(rt)}</div>`,iconSize:[44,44],iconAnchor:[22,22],className:'busm'})}).addTo(map);
+   bus.getElement()?.style.setProperty('--h',(+v.hdg||0)+'deg');
    if(first){map.setView([c.lat,c.lon],15);first=false}
    if(!line&&v.pid){line=1;bt('actrealtime/pattern?pid='+v.pid).then(r=>{const p=r.ptr?.[0];if(!p)return;len=+p.ln||0;
     L.polyline(p.pt.map(q=>[+q.lat,+q.lon]),{color:'#EE8329',weight:6}).addTo(LG);bus.addTo(map)}).catch(()=>{})}
    if(len&&v.pdist!=null)pct=Math.min(100,v.pdist/len*100)}
   const a=(await bt('actrealtime/prediction?vid='+vid)).prd||[];
-  $('#stl').innerHTML='<b>Upcoming stops</b>'+a.slice(0,15).map(p=>{const t=target&&target.id==p.stpid;return `<div class="stp row"><div class="sp"><b>${esc(p.stpnm)}</b><div class="m">Stop ${esc(p.stpid)} · ${mins(p)}</div></div><button class="${t?'o':'g'}" data-gi="${esc(p.stpid)}" data-gn="${esc(p.stpnm)}">${t?'Your stop':'Get off here'}</button></div>`}).join('');
+  $('#stl').innerHTML=`<div style="font-size:22px;font-weight:700">Bus #${esc(vid)} Trip Information</div><div class="m" style="text-align:center;margin:14px 0 4px">Some stops already completed</div><div class="tl">`+a.slice(0,15).map((p,k)=>{const t=target&&target.id==p.stpid,n=p.prdctdn==='DUE'||p.prdctdn==='Due'?0:+p.prdctdn;
+  return `<div class="ti"><i class="d ${t?'t':''}"></i><div class="sp"><b>${esc(p.stpnm)}</b><div class="m">Stop number: ${esc(p.stpid)}</div><div class="m">${n===0?'<span class="r">Arriving now</span>':'Arriving in <span class="r">'+n+' minute'+(n>1?'s':'')+'</span>'}</div><button class="${t?'o':'g'}" data-gi="${esc(p.stpid)}" data-gn="${esc(p.stpnm)}" style="margin-top:8px;min-height:36px">${t?'Your stop ✓':'Get off here'}</button></div>${k===0?'<span class="nx">NEXT ON<br>THIS TRIP</span>':''}</div>`}).join('')+'</div>';
   let ref=a[0],label='next stop';
   if(target){const t=a.find(p=>p.stpid==target.id);
    if(t){seen=true;ref=t;label=target.n;const m=t.prdctdn==='DUE'||t.prdctdn==='Due'?0:+t.prdctdn;
     if(m<=2&&!alerted)fire();else if(!alerted)banner(`Get off at <b>${esc(target.n)}</b> in ${mins(t)}`)}
    else if(seen){banner('You have passed '+esc(target.n));localStorage.removeItem('target');target=null}}else banner('');
-  if(ref)$('#ov').innerHTML=`<div class="ovc"><div class="row"><span class="pill">● FOLLOWING TRIP</span><span class="m" style="margin:0">Bus ${esc(vid)} · Line ${esc(rt)} to ${esc(des)}</span></div><div class="big">${mins(ref)}<small> to ${esc(label)}</small></div>${pct!=null?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}<div class="up m">Next: ${a.slice(0,2).map(p=>esc(p.stpnm)+' ('+mins(p)+')').join(' · ')}</div></div>`;
+  if(ref){const f=!$('#ov').firstChild;$('#ov').innerHTML=`<div class="ovc ${f?'':'na'}"><div class="row"><span class="pill">● FOLLOWING TRIP</span><span class="m" style="margin:0">Bus ${esc(vid)} · Line ${esc(rt)} to ${esc(des)}</span></div><div class="big">${mins(ref)}<small> to ${esc(label)}</small></div>${pct!=null?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}<div class="up m">Next: ${a.slice(0,2).map(p=>esc(p.stpnm)+' ('+mins(p)+')').join(' · ')}</div></div>`}
   document.querySelectorAll('.err').forEach(x=>x.remove())}catch(e){fail(e)}}
  poll(tick,10000)}
 
-function more(){show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
+function more(){const A=(n,u)=>`<a class="lk" target="_blank" rel="noopener" href="${u}"><span>${n}</span><span>›</span></a>`,W='https://www.actransit.org/';
+ const L=`<div class="sh">USING AC TRANSIT</div>${A('Fare Information',W+'fares')}${A('Contactless Payment',W+'contactless-payment')}${A('Bikes',W+'bikes')}<div class="sh">CONTACT US</div>${A('Compliments and Feedback',W+'customer/customer-feedback/report')}${A('Lost and Found',W+'lostandfound')}${A('Contact Us',W+'contact-us')}<div class="sh">MORE SUPPORT</div>${A('District Website',W)}${A('News',W+'news')}${A('Subscriptions','https://service.govdelivery.com/accounts/ACTRANSIT/subscriber/new')}${A('Data terms and conditions',W+'data-terms-and-conditions/')}`;
+ show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
 <input id="tk" type="password" placeholder="Paste token (optional if your proxy holds it)" value="${esc(tok)}" aria-label="API token"></div>
 <div class="card"><b>Proxy URL (fixes “Failed to fetch”)</b><p class="m">Your Cloudflare Worker address, e.g. https://bus.yourname.workers.dev</p><input id="px" placeholder="https://…workers.dev" value="${esc(PX)}" aria-label="Proxy URL"><p><button id="sv">Save &amp; reload</button></p></div>
-<div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>`);
+<div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>${L}`);
  $('#sv').onclick=()=>{localStorage.tok=$('#tk').value.trim();localStorage.proxy=$('#px').value.trim();location.reload()}}
 go(tok||PX?'home':'more');
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
