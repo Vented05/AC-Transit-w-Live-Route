@@ -126,11 +126,35 @@ path.rl{stroke-dasharray:14 12;animation:flow 1s linear infinite}
 .opt.sel{border-color:var(--o)}.opt{cursor:pointer}
 #side{padding-top:0}#v{padding-top:12px}.seg{margin-top:-12px}
 @media(max-width:899px){.seg{top:calc(var(--hh) + env(safe-area-inset-top))}}
+
+.opt:has(.det) .det{display:none}.opt.sel .det{display:block;animation:rise .3s ease both}.opt:has(.det){transition:border-color .2s,background .2s}.opt.sel{background:#262420}
+[hidden]{display:none!important}
+body.navmode #side,body.navmode header,body.navmode #bnav{display:none!important}
+body.navmode #app{display:block;height:100dvh;padding:0}
+body.navmode #mapwrap{display:block!important;position:fixed;inset:0;height:100dvh!important;z-index:100}
+body.navmode .ovc{display:none}
+#nav{position:fixed;inset:0;z-index:150;pointer-events:none}#nav>*{pointer-events:auto}
+#nb,#nc,#nf{position:absolute;left:10px;right:10px;max-width:520px;box-shadow:0 8px 28px rgba(0,0,0,.5)}
+#nb{top:calc(10px + env(safe-area-inset-top));background:#1f5f52;border-radius:22px;padding:16px 18px;transition:background .4s;animation:drop .4s ease both}
+#nb.warn{background:#c62839;animation:shake .6s 2}
+#nb .tt{font-size:24px;font-weight:700;line-height:1.15}.th{display:inline-block;margin-top:10px;background:rgba(0,0,0,.28);border-radius:14px;padding:6px 12px;font-size:13px}
+#nc{bottom:calc(92px + env(safe-area-inset-bottom));max-height:46vh;overflow:auto;background:#111;border-radius:22px;padding:14px;animation:up .45s ease both}
+#nf{bottom:calc(10px + env(safe-area-inset-bottom));background:#111;border-radius:22px;padding:12px 16px;display:flex;align-items:center;gap:12px}
+#nf .big{font-size:26px;font-weight:700}
+#rl{position:relative;display:flex;flex-direction:column;padding-left:6px}#rl::before{content:"";position:absolute;left:19px;top:14px;bottom:14px;width:4px;background:#444;border-radius:2px}
+.rs{position:relative;padding:11px 0 11px 46px;transition:opacity .4s}.rs i{position:absolute;left:12px;top:17px;width:16px;height:16px;border-radius:50%;background:#777;transition:background .4s}
+.rs.ps{opacity:.4}.rs.ps i{background:#3fd49a}.rs.nx{background:rgba(255,255,255,.07);border-radius:12px}.rs.nx i{background:#fff;box-shadow:0 0 0 5px rgba(255,255,255,.25)}
+.rs.tg i{background:var(--o);width:22px;height:22px;left:9px;top:14px;box-shadow:0 0 0 6px rgba(238,131,41,.3)}.rs.tg b{color:#ffb066}
+#rb{position:absolute;left:4px;top:0;width:34px;height:34px;border-radius:50%;background:#1c1b4d;border:3px solid var(--o);display:flex;align-items:center;justify-content:center;font-size:16px;transition:top 1s cubic-bezier(.3,.8,.3,1);z-index:2}
+.tgt{position:relative;width:0;height:0}.tgt i{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;background:var(--o);border:4px solid #fff;animation:tp 1.6s infinite}
+.tgt b{position:absolute;left:20px;top:-14px;background:#111;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;white-space:nowrap}
+@keyframes tp{0%{box-shadow:0 0 0 0 rgba(238,131,41,.7)}70%{box-shadow:0 0 0 20px rgba(238,131,41,0)}100%{box-shadow:0 0 0 0 rgba(238,131,41,0)}}
 </style></head><body>
 <div id="splash"><div class="lg">AC TRANSIT</div><div class="rd"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="4" width="60" height="26" rx="7" fill="#fff"/><rect x="8" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="24" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="40" y="9" width="14" height="9" rx="2" fill="#18865F"/><rect x="2" y="22" width="60" height="4" fill="#EE8329"/><circle cx="16" cy="32" r="5" fill="#222"/><circle cx="48" cy="32" r="5" fill="#222"/></svg></div><div style="font-size:12px;opacity:.85">Unofficial live bus tracker</div></div>
 <header><div class="logo"><b>AC</b>TRANSIT</div><span class="live"><i></i>LIVE</span><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
 <div id="app"><aside id="side"><div id="v"></div></aside><div id="mapwrap"><div id="map"></div><div id="ov"></div></div></div>
 <nav id="bnav"></nav>
+<div id="nav" hidden><div id="nb"></div><div id="nc"></div><div id="nf"></div></div>
 <script src="config.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -218,11 +242,11 @@ async function resolve(k){const el=$('#p'+k),v=el.value.trim();
  if(/^\d{4,6}$/.test(v)){const x=(await bt('actrealtime/stop?stpid='+v)).stops?.[0];if(!x)throw Error('Stop '+v+' not found.');return P[k]={name:x.stpnm,lat:+x.lat,lon:+x.lon}}
  const r=(await geo(v))[0];if(!r)throw Error('Couldn’t find “'+v+'” in the Bay Area.');el.value=r.name;return P[k]=r}
 let sugT;
-function sug(k){const el=$('#p'+k);el.oninput=()=>{clearTimeout(sugT);const v=el.value.trim(),l=$('#s'+k);P[k]=null;l.innerHTML='';if(v.length<3||/^\d+$/.test(v))return;
- sugT=setTimeout(async()=>{try{const r=await geo(v);l.innerHTML=r.map((x,i)=>`<button data-i="${i}">${esc(x.name)}</button>`).join('');
-  l.onclick=ev=>{const b=ev.target.closest('button');if(!b)return;P[k]=r[b.dataset.i];el.value=P[k].name;l.innerHTML=''}}catch(e){}},600)}}
-let SQ='line',PK=null,ALL=null;
-function searchV(){show(`<div class="seg">${[['line','Select line'],['stop','Select stop'],['plan','Plan trip']].map(([k,n])=>`<button data-sq="${k}" class="${k===SQ?'on':''}">${n}</button>`).join('')}</div><div id="sb"></div>`);
+function sug(k){const el=$('#p'+k);el.oninput=()=>{clearTimeout(sugT);const v=el.value.trim(),l=$('#s'+k);P[k]=null;l.innerHTML='';if(v.length<2||/^\d+$/.test(v))return;
+ sugT=setTimeout(async()=>{try{const r=await geo(v);if(el.value.trim()!==v)return;l.innerHTML=r.map((x,i)=>`<button data-i="${i}">${esc(x.name)}</button>`).join('');
+  l.onclick=ev=>{const b=ev.target.closest('button');if(!b)return;P[k]=r[b.dataset.i];el.value=P[k].name;l.innerHTML=''}}catch(e){}},220)}}
+let SQ='plan',PK=null,ALL=null;
+function searchV(){show(`<div class="seg">${[['plan','Plan trip'],['line','Select line'],['stop','Select stop']].map(([k,n])=>`<button data-sq="${k}" class="${k===SQ?'on':''}">${n}</button>`).join('')}</div><div id="sb"></div>`);
  ({line:lineV,stop:stopSV,plan:()=>{planV();$('#sb').insertAdjacentHTML('beforeend','<div class="card"><b>AC Transit’s own trip planner</b><div class="m">Schedule-based, with transfers, same one the official app opens.</div><p><button id="tpb">Show it here</button> <a class="lk" style="display:inline-flex;margin:0 0 0 8px;padding:12px 14px" target="_blank" rel="noopener" href="https://tp.actransit.org/?standalone=true#/">Open in new tab</a></p><div id="tpf"></div></div>')}})[SQ]()}
 const list=(a,f)=>a.map((x,i)=>`<button class="li" data-pick="${i}">${f(x)}</button>`).join('');
 function filt(items,f,render,onpick){const el=$('#sb');el.innerHTML=`<input id="q" placeholder="Search" aria-label="Search" style="margin-bottom:10px"><div id="ls"></div>`;
@@ -248,7 +272,7 @@ function planV(){$('#sb').innerHTML=(`<div class="card"><label for="pf">From</la
 <div class="row" style="margin:12px 0;flex-wrap:wrap"><label style="margin:0"><input type="radio" name="m" value="now" ${P.mode==='now'?'checked':''}> Leave now</label><label style="margin:0"><input type="radio" name="m" value="at" ${P.mode==='at'?'checked':''}> Depart at</label><label style="margin:0"><input type="radio" name="m" value="arr" ${P.mode==='arr'?'checked':''}> Arrive by</label><input type="time" id="tm" aria-label="Departure time" style="width:140px" value="${esc(P.tm||'')}"></div>
 <button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
  sug('f');sug('t');$('#pf').onfocus=e=>e.target.select();document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;if(P.mode==='now'){P.mode='at';document.querySelector('[name=m][value=at]').checked=true}};
- $('#go').onclick=plan;if(plans.length)drawPlans()}
+ $('#go').onclick=plan;if(ops.length)drawOtp();else if(plans.length)drawPlans()}
 const SC={},WC={};
 async function walk(a,b){const k=[a.lat,a.lon,b.lat,b.lon].map(v=>(+v).toFixed(5)).join();if(WC[k])return WC[k];
  const f=H(a,b)*1.25;let r={min:Math.max(1,Math.ceil(f/264)),mi:f/5280,pts:[[a.lat,a.lon],[b.lat,b.lon]],est:true};
@@ -319,7 +343,7 @@ async function plan(){const res=$('#res');if(!PX)return planLive();
    q=`fromPlace=${encodeURIComponent((o.name||'Current location')+'::'+o.lat+','+o.lon)}&toPlace=${encodeURIComponent((d.name||'Destination')+'::'+d.lat+','+d.lon)}&date=${t0.getFullYear()}-${pad(t0.getMonth()+1)}-${pad(t0.getDate())}&time=${h12}:${pad(t0.getMinutes())}${t0.getHours()<12?'am':'pm'}&arriveBy=${P.mode==='arr'}&mode=WALK,BUS,TRAM,RAIL,SUBWAY,FERRY&showIntermediateStops=true&maxWalkDistance=1609&optimize=QUICK&bannedAgencies=ACREALIGN&actmode=true&walkSpeed=1.34&ignoreRealtimeUpdates=false&numItineraries=6`;
   const j=await(await fetch(`${PX}/otp1/otp/routers/default/plan?${q}`)).json();
   if(j.error&&!j.plan)throw Error(j.error.msg||'No trip found.');
-  ops=(j.plan&&j.plan.itineraries)||[];P.o=o;P.d=d;
+  ops=(j.plan&&j.plan.itineraries)||[];plans=[];P.o=o;P.d=d;
   if(!ops.length){res.innerHTML='<div class="card m">No trips found. Try a different time or place.</div>';return}
   drawOtp()}catch(e){res.innerHTML='';fail(Error('Official planner unavailable ('+e.message+') – showing live-bus estimate'));planLive()}}
 function selOtp(i){const x=ops[i];if(!x)return;oSel=i;document.querySelectorAll('.opt').forEach((e,k)=>e.classList.toggle('sel',k==i));LG.clearLayers();
@@ -333,8 +357,68 @@ function drawOtp(){document.body.classList.add('mapon');setTimeout(()=>map.inval
   const fare=x.fare&&x.fare.fare&&x.fare.fare.regular?'$'+(x.fare.fare.regular.cents/100).toFixed(2):'';
   const sum=x.legs.map(l=>l.mode==='WALK'?`<span class="m" style="display:inline">Walk ${dur(l.duration*1e3)}</span>`:`<span class="badge" style="background:#${l.routeColor||'18865F'};color:#${l.routeTextColor||'fff'}">${esc(l.route)}</span>`).join(' → ');
   return `<div class="card opt" data-oo="${i}"><div class="row"><b class="sp">${fmt(new Date(x.startTime))}–${fmt(new Date(x.endTime))}</b><b style="font-size:18px">${dur(x.duration*1e3)} min</b></div><div class="m">${sum}</div><div class="m">${x.transfers?x.transfers+' transfer'+(x.transfers>1?'s':''):'Direct'}${fare?' · Fare '+fare:''}</div>`+
-  x.legs.map((l,j)=>l.mode==='WALK'?`<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Walk ${dur(l.duration*1e3)} min (${dist(l.distance)}) to ${esc(l.to.name)}</div>`:
-   `<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Board <span class="badge" style="background:#${l.routeColor||'18865F'};color:#${l.routeTextColor||'fff'}">${esc(l.route)}</span> at ${esc(l.from.name)}${l.realTime?` <span class="r" style="font-size:12px">LIVE${l.departureDelay>60?' · '+Math.round(l.departureDelay/60)+' min late':''}</span>`:''}<div class="m">to ${esc(l.headsign||'')} · ${(l.intermediateStops||[]).length+1} stops · ${dur(l.duration*1e3)} min</div><div style="margin-top:6px"><b>${fmt(new Date(l.endTime))}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-ot="${i}|${j}" style="width:100%;margin-top:8px">Track this bus</button></div>`).join('')+`</div>`}).join('');selOtp(0)}
+  '<div class="det"><button class="o" data-sr="'+i+'" style="width:100%;margin:10px 0 4px">Start route</button>'+x.legs.map((l,j)=>l.mode==='WALK'?`<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Walk ${dur(l.duration*1e3)} min (${dist(l.distance)}) to ${esc(l.to.name)}</div>`:
+   `<div class="stp"><b>${fmt(new Date(l.startTime))}</b> Board <span class="badge" style="background:#${l.routeColor||'18865F'};color:#${l.routeTextColor||'fff'}">${esc(l.route)}</span> at ${esc(l.from.name)}${l.realTime?` <span class="r" style="font-size:12px">LIVE${l.departureDelay>60?' · '+Math.round(l.departureDelay/60)+' min late':''}</span>`:''}<div class="m">to ${esc(l.headsign||'')} · ${(l.intermediateStops||[]).length+1} stops · ${dur(l.duration*1e3)} min</div><div style="margin-top:6px"><b>${fmt(new Date(l.endTime))}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-ot="${i}|${j}" style="width:100%;margin-top:8px">Track this bus</button></div>`).join('')+`</div></div>`}).join('');selOtp(0)}
+/* ---- Start Route (live navigation) ---- */
+let NV=null;
+const ICO={walk:'🚶',wait:'⏱',ride:'🚌',done:'🏁'};
+function startRoute(i){const it=ops[i],st=[];
+ it.legs.forEach(l=>{if(l.mode==='WALK')st.push({k:'walk',l,to:l.to});else{st.push({k:'wait',l,to:l.from});st.push({k:'ride',l,to:l.to})}});
+ clearInterval(timer);NV={it,st,i:0,pm:{},c:0};document.body.classList.add('navmode');$('#nav').hidden=false;
+ if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+ if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
+ watch=navigator.geolocation.watchPosition(p=>{if(!NV)return;NV.pos={lat:p.coords.latitude,lon:p.coords.longitude};NV.u?NV.u.setLatLng([NV.pos.lat,NV.pos.lon]):NV.u=dot(NV.pos,'#1d5fd0',9).addTo(map)},()=>{},{enableHighAccuracy:true});
+ setTimeout(()=>{map.invalidateSize();enter()},120);NV.t=setInterval(ntick,4000)}
+function drawNav(){LG.clearLayers();NV.it.legs.forEach(l=>{const g=dec(l.legGeometry.points);
+  L.polyline(g,l.mode==='WALK'?{color:'#1d5fd0',weight:6,dashArray:'2 9',lineCap:'round'}:{color:'#'+(l.routeColor||'EE8329'),weight:8,className:'rl'}).addTo(LG)});
+ const s=NV.st[NV.i];if(!s)return;L.marker([s.to.lat,s.to.lon],{icon:L.divIcon({html:`<div class="tgt"><i></i><b>${esc(s.to.name)}</b></div>`,className:'',iconSize:[0,0]})}).addTo(LG);
+ const pts=[[s.to.lat,s.to.lon]];if(NV.pos)pts.push([NV.pos.lat,NV.pos.lon]);map.fitBounds(pts,{paddingTopLeft:[30,190],paddingBottomRight:[30,290],maxZoom:17})}
+function enter(){NV.fired=false;NV.warn=false;NV.pm={};NV.eta=null;drawNav();paint(true)}
+function nextStep(){NV.i++;if(NV.i>=NV.st.length){NV.done=1;paint(true);return}enter()}
+function paint(full){if(!NV)return;const it=NV.it,now=Date.now(),s=NV.st[NV.i];let t,sub,c='',ic;
+ if(NV.done){t='You’ve arrived';sub=esc(P.d.name||'');ic='done';c='<button class="o" data-nv="exit" style="width:100%">Done</button>'}
+ else{const l=s.l,nx=NV.st[NV.i+1];ic=s.k;
+  const then=nx?(nx.k==='walk'?'Then walk to '+nx.to.name:nx.k==='wait'?'Then wait for line '+nx.l.route:'Then ride to '+nx.to.name):'Then arrive';NV.then=then;
+  if(s.k==='walk'){const ft=NV.pos?H(NV.pos,s.to)*1.25:l.distance*3.28;t='Walk to '+s.to.name;sub=`${ft<500?Math.round(ft)+' ft':(ft/5280).toFixed(1)+' mi'} · ${Math.max(1,Math.round(ft/264))} min`;
+   c='<button class="g" data-nv="next" style="width:100%">I’m here</button>'}
+  if(s.k==='wait'){const m=NV.eta!=null?NV.eta:Math.max(0,Math.round((l.startTime-now)/6e4));t='Wait for line '+l.route;sub=`${m<1?'Due now':'Arrives in '+m+' min'} · ${s.to.name}${NV.vid?' · LIVE':''}`;
+   c=`<div class="m" style="margin:0 0 8px">Line ${esc(l.route)} to ${esc(l.headsign||'')}</div><div class="row"><button class="g sp" data-nv="bus">See bus location</button><button class="o sp" data-nv="next">I got on the bus</button></div>`}
+  if(s.k==='ride'){const S=[l.from,...(l.intermediateStops||[]),l.to];NV.S=S;t=NV.tt||'Ride to '+l.to.name;sub=NV.ss||'';
+   c=`<div id="rl">${S.map((p,k)=>`<div class="rs${k==S.length-1?' tg':''}" id="rs${k}" style="order:${S.length-k}"><i></i><b>${esc(p.name)}</b><div class="m">Stop ${esc(p.stopCode)} · <span class="tm">${fmt(new Date(p.arrival||p.departure))}</span></div></div>`).join('')}<div id="rb">🚌</div></div><button class="g" data-nv="next" style="width:100%;margin-top:10px">I got off</button>`}}
+ $('#nb').className=NV.warn?'warn':'';
+ $('#nb').innerHTML=`<div class="row"><span style="font-size:34px">${ICO[ic]}</span><div class="sp"><div class="tt">${esc(t)}</div><div class="m" style="color:#d6efe7">${sub}</div></div></div>${NV.done||!NV.then?'':`<span class="th">${esc(NV.then)}</span>`}`;
+ if(full){$('#nc').innerHTML=c;$('#nc').style.display=c?'block':'none';if(!NV.done&&s.k==='ride')upd()}
+ const rem=Math.max(0,Math.round((it.endTime-now)/6e4));
+ $('#nf').innerHTML=`<div class="sp"><div class="big">${rem} min</div><div class="m">${fmt(new Date(it.endTime))} arrival</div></div><button style="background:#e5384c;min-width:96px" data-nv="exit">Exit</button>`}
+function upd(){const s=NV.st[NV.i],S=NV.S,now=Date.now(),T=S.length-1;if(!S||!$('#rs0'))return;
+ let idx=S.findIndex(p=>!(!NV.pm[p.stopCode]&&(p.arrival||p.departure)<=now));if(idx<0)idx=S.length;
+ if(idx>T||(NV.pos&&H(NV.pos,S[T])<130&&idx>=T)){nextStep();return}
+ S.forEach((p,k)=>{const r=$('#rs'+k),m=NV.pm[p.stopCode];r.classList.toggle('ps',k<idx);r.classList.toggle('nx',k===idx);r.querySelector('.tm').textContent=fmt(new Date(m||p.arrival||p.departure))+(m?' · live':'')});
+ const left=T-idx,rb=$('#rb'),row=$('#rs'+Math.max(idx-1,0)),box=$('#nc');
+ rb.style.top=(row.offsetTop+row.offsetHeight/2-17)+'px';
+ const nr=$('#rs'+idx);if(nr)box.scrollTo({top:Math.max(0,nr.offsetTop-box.clientHeight/2),behavior:'smooth'});
+ NV.warn=idx===T;NV.tt=idx===T?'Get off at '+S[T].name:'Ride to '+S[T].name;
+ NV.ss=idx===T?'Your stop is next!':`${left} stop${left>1?'s':''} to go · next: ${S[idx].name}`+(left===1?' (then yours)':'');
+ if(idx===T&&!NV.fired){NV.fired=true;if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
+  if('Notification'in window&&Notification.permission==='granted')new Notification('Time to get off',{body:S[T].name,requireInteraction:true})}}
+async function ntick(){if(!NV||NV.done)return;const s=NV.st[NV.i];NV.c++;
+ if(s.k==='walk'&&NV.pos&&H(NV.pos,s.to)<130){nextStep();return}
+ try{if(s.k==='wait'&&NV.c%4===1){const p=(await bt('actrealtime/prediction?stpid='+s.to.stopCode+'&rt='+encodeURIComponent(s.l.route))).prd||[],tid=(s.l.tripId||'').split(':')[1];
+   let b=p.find(x=>x.tripid===tid||x.origtatripno===tid);if(!b)b=p.map(x=>({x,d:Math.abs((pt(x.prdtm)||0)-s.l.startTime)})).sort((a,c)=>a.d-c.d)[0]?.x;
+   if(b&&Math.abs(pt(b.prdtm)-s.l.startTime)<25*6e4){NV.vid=b.vid;NV.eta=/^due$/i.test(b.prdctdn)?0:+b.prdctdn}}
+  if(s.k==='ride'&&NV.vid&&NV.c%2===0){const p=(await bt('actrealtime/prediction?vid='+NV.vid)).prd||[];NV.pm={};p.forEach(x=>NV.pm[x.stpid]=pt(x.prdtm).getTime())}
+  if(NV.vid&&NV.b){const v=(await bt('actrealtime/vehicle?vid='+NV.vid)).vehicle?.[0];if(v)NV.b.setLatLng([+v.lat,+v.lon])}}catch(e){}
+ if(!NV)return;if(s.k==='ride')upd();paint(false)}
+async function showBus(btn){if(!NV.vid){btn.textContent='Bus not live yet';return}
+ try{const v=(await bt('actrealtime/vehicle?vid='+NV.vid)).vehicle?.[0];if(!v)return;const c=[+v.lat,+v.lon],l=NV.st[NV.i].l;
+  if(NV.b)NV.b.setLatLng(c);else NV.b=L.marker(c,{icon:L.divIcon({html:`<div class="bm"><i class="ar"></i>${esc(l.route)}</div>`,iconSize:[44,44],iconAnchor:[22,22],className:'busm'})}).addTo(map);
+  const s=NV.st[NV.i];map.fitBounds([c,[s.to.lat,s.to.lon]].concat(NV.pos?[[NV.pos.lat,NV.pos.lon]]:[]),{paddingTopLeft:[30,190],paddingBottomRight:[30,290],maxZoom:17})}catch(e){}}
+function exitNav(){if(!NV)return;clearInterval(NV.t);NV.u&&NV.u.remove();NV.b&&NV.b.remove();if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}
+ if(wake){wake.release().catch(()=>{});wake=null}NV=null;document.body.classList.remove('navmode');$('#nav').hidden=true;go('search')}
+document.addEventListener('click',e=>{const a=e.target.closest('[data-nv]'),r=e.target.closest('[data-sr]');
+ if(r){startRoute(+r.dataset.sr);return}
+ if(a){const k=a.dataset.nv;if(k==='exit')exitNav();else if(k==='next')nextStep();else if(k==='bus')showBus(a)}});
+
 async function trackLeg(i,j,btn){const l=ops[i].legs[j];btn.textContent='Finding the bus…';
  try{const prd=(await bt('actrealtime/prediction?stpid='+l.from.stopCode+'&rt='+encodeURIComponent(l.route))).prd||[],tid=(l.tripId||'').split(':')[1];
   let p=prd.find(x=>x.tripid===tid||x.origtatripno===tid);if(!p)p=prd.map(x=>({x,t:Math.abs((pt(x.prdtm)||0)-l.startTime)})).sort((a,b)=>a.t-b.t)[0]?.x;
