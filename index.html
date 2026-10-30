@@ -123,6 +123,7 @@ path.rl{stroke-dasharray:14 12;animation:flow 1s linear infinite}
  #bnav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));border-radius:24px;padding:0 6px;background:rgba(24,134,95,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(0,0,0,.55)}
  #bnav button{border-radius:18px;margin:6px 0;min-height:48px}#bnav button.on{background:rgba(255,255,255,.2);box-shadow:none}
  #app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}.live{display:none}}
+.opt.sel{border-color:var(--o)}.opt{cursor:pointer}
 </style></head><body>
 <div id="splash"><div class="lg">AC TRANSIT</div><div class="rd"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="4" width="60" height="26" rx="7" fill="#fff"/><rect x="8" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="24" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="40" y="9" width="14" height="9" rx="2" fill="#18865F"/><rect x="2" y="22" width="60" height="4" fill="#EE8329"/><circle cx="16" cy="32" r="5" fill="#222"/><circle cx="48" cy="32" r="5" fill="#222"/></svg></div><div style="font-size:12px;opacity:.85">Unofficial live bus tracker</div></div>
 <header><div class="logo"><b>AC</b>TRANSIT</div><span class="live"><i></i>LIVE</span><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
@@ -244,23 +245,30 @@ function planV(){$('#sb').innerHTML=(`<div class="card"><label for="pf">From</la
 <button class="o" id="go" style="width:100%">Plan trip</button></div><div id="res"></div>`);
  sug('f');sug('t');$('#pf').onfocus=e=>e.target.select();document.querySelectorAll('[name=m]').forEach(r=>r.onchange=()=>{P.mode=r.value});$('#tm').onchange=()=>{P.tm=$('#tm').value;P.mode='at';document.querySelector('[name=m][value=at]').checked=true};
  $('#go').onclick=plan;if(plans.length)drawPlans()}
-const SC={};
+const SC={},WC={};
+async function walk(a,b){const k=[a.lat,a.lon,b.lat,b.lon].map(v=>(+v).toFixed(5)).join();if(WC[k])return WC[k];
+ const f=H(a,b)*1.25;let r={min:Math.max(1,Math.ceil(f/264)),mi:f/5280,pts:[[a.lat,a.lon],[b.lat,b.lon]],est:true};
+ try{const j=await(await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`)).json(),x=j.routes?.[0];
+  if(x)r={min:Math.max(1,Math.ceil(x.duration/60)),mi:x.distance/1609.34,pts:x.geometry.coordinates.map(c=>[c[1],c[0]]),est:false}}catch(e){}
+ return WC[k]=r}
+
 async function coords(ids){const need=[...new Set(ids)].filter(i=>!SC[i]),ch=[];for(let i=0;i<need.length;i+=10)ch.push(need.slice(i,i+10));
  await Promise.all(ch.map(c=>bt('actrealtime/stop?stpid='+c.join(',')).then(r=>(r.stops||[]).forEach(x=>SC[x.stpid]={lat:+x.lat,lon:+x.lon})).catch(()=>{})))}
 async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">Planning (checking transfers can take a few seconds)…</div><div class="card sk"></div>';
  try{const o=await resolve('f'),d=await resolve('t');if(!d)throw Error('Enter a destination.');
   let t0=new Date();if(P.mode==='at'&&$('#tm').value){const[h,m]=$('#tm').value.split(':');t0.setHours(+h,+m,0,0);if(t0<Date.now()-6e4)t0.setDate(t0.getDate()+1)}
-  const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,2000),nearStops(d.lat,d.lon,2500)]);
+  const[os,ds]=await Promise.all([nearStops(o.lat,o.lon,5000),nearStops(d.lat,d.lon,5000)]);
   if(!os.length||!ds.length)throw Error('No bus stops within walking distance of the '+(os.length?'destination':'start')+'.');
-  const om={},dm={};os.slice(0,10).forEach(s=>{s.w=Math.ceil(H(o,s)/264);om[s.id]=s});ds.forEach(s=>dm[s.id]=s);
-  const prd=((await bt('actrealtime/prediction?stpid='+Object.keys(om).join(','))).prd||[]).map(p=>({...p,dep:pt(p.prdtm)}))
+  const om={},dm={};os.slice(0,30).forEach(s=>{s.w=Math.ceil(H(o,s)*1.25/264);om[s.id]=s});ds.forEach(s=>dm[s.id]=s);
+  const ik=Object.keys(om),ch=[];for(let i=0;i<ik.length;i+=10)ch.push(ik.slice(i,i+10));
+  const prd=(await Promise.all(ch.map(c=>bt('actrealtime/prediction?stpid='+c.join(',')).catch(()=>({}))))).flatMap(r=>r.prd||[]).map(p=>({...p,dep:pt(p.prdtm)}))
    .filter(p=>p.dep&&p.dep>=new Date(t0.getTime()+om[p.stpid].w*6e4)).sort((a,b)=>a.dep-b.dep);
-  const seen=new Set(),cand=[];prd.forEach(p=>{if(!seen.has(p.vid)&&cand.length<10){seen.add(p.vid);cand.push(p)}});
+  const seen=new Set(),cand=[];prd.forEach(p=>{if(!seen.has(p.vid)&&cand.length<14){seen.add(p.vid);cand.push(p)}});
   const rs=await Promise.allSettled(cand.map(p=>bt('actrealtime/prediction?vid='+p.vid)));
   const A=[];rs.forEach((r,i)=>{if(r.status==='fulfilled')A.push({p:cand[i],l:(r.value.prd||[]).filter(q=>+q.seq>+cand[i].seq&&pt(q.prdtm))})});
   const leg=(p,q)=>({rt:p.rt,des:p.des,vid:p.vid,from:{id:p.stpid,name:p.stpnm},to:{id:q.stpid,name:q.stpnm},dep:pt(p.prdtm),arr:pt(q.prdtm),n:+q.seq-+p.seq});
   const out=[];
-  A.forEach(({p,l})=>{let best;l.filter(q=>dm[q.stpid]).forEach(q=>{const w=Math.ceil(H(dm[q.stpid],d)/264),end=new Date(pt(q.prdtm).getTime()+w*6e4);if(!best||end<best.end)best={q,w,end}});
+  A.forEach(({p,l})=>{let best;l.filter(q=>dm[q.stpid]).forEach(q=>{const w=Math.ceil(H(dm[q.stpid],d)*1.25/264),end=new Date(pt(q.prdtm).getTime()+w*6e4);if(!best||end<best.end)best={q,w,end}});
    if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.q)],w1,w2:best.w,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}});
   try{const dp=(await bt('actrealtime/prediction?stpid='+ds.slice(0,10).map(s=>s.id).join(','))).prd||[];
    const bv=[...new Set(dp.map(x=>x.vid))].filter(v=>!seen.has(v)).slice(0,6);
@@ -269,18 +277,35 @@ async function plan(){const res=$('#res');res.innerHTML='<div class="card sk m">
    const As=A.slice(0,5).map(a=>({p:a.p,l:a.l.slice(0,15)}));
    await coords([...As.flatMap(a=>a.l.map(q=>q.stpid)),...Bs.flatMap(b=>b.board.map(q=>q.stpid))]);
    As.forEach(({p,l})=>Bs.forEach(b=>{let best;
-    l.forEach(a=>b.board.forEach(bq=>{const ca=SC[a.stpid],cb=SC[bq.stpid];if(!ca||!cb||p.rt===bq.rt)return;const ft=a.stpid===bq.stpid?0:H(ca,cb);if(ft>900)return;const wx=Math.ceil(ft/264);
+    l.forEach(a=>b.board.forEach(bq=>{const ca=SC[a.stpid],cb=SC[bq.stpid];if(!ca||!cb||p.rt===bq.rt)return;const ft=a.stpid===bq.stpid?0:H(ca,cb);if(ft>1500)return;const wx=Math.ceil(ft*1.25/264);
      if(pt(bq.prdtm)<new Date(pt(a.prdtm).getTime()+(wx+2)*6e4))return;
-     const w2=Math.ceil(H(dm[b.q.stpid],d)/264),end=new Date(pt(b.q.prdtm).getTime()+w2*6e4);if(!best||end<best.end)best={a,bq,wx,w2,end}}));
+     const w2=Math.ceil(H(dm[b.q.stpid],d)*1.25/264),end=new Date(pt(b.q.prdtm).getTime()+w2*6e4);if(!best||end<best.end)best={a,bq,wx,w2,end}}));
     if(best){const w1=om[p.stpid].w;out.push({legs:[leg(p,best.a),leg(best.bq,b.q)],wx:best.wx,w1,w2:best.w2,start:new Date(pt(p.prdtm).getTime()-w1*6e4),end:best.end})}}))}catch(e){}
-  plans=out.sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid).join()===x.legs.map(l=>l.vid).join())===i).slice(0,6);P.o=o;P.d=d;
-  if(!plans.length){res.innerHTML=`<div class="card m">No direct or one-transfer route found${P.mode==='at'?' for that time. Live predictions only reach a short time ahead':''}.</div>`;return}
+  plans=out.sort((a,b)=>a.end-b.end).filter((x,i,a)=>a.findIndex(y=>y.legs.map(l=>l.vid).join()===x.legs.map(l=>l.vid).join())===i).slice(0,8);P.o=o;P.d=d;
+  const sc=id=>om[id]||dm[id]||SC[id];
+  await Promise.all(plans.map(async x=>{const G=x.legs,F=G[0],T=G[G.length-1],a0=sc(F.from.id),a1=sc(F.to.id),b0=sc(T.from.id),b1=sc(T.to.id);
+   x.wk=[await walk(o,a0)];if(G.length>1)x.wk.push(await walk(a1,b0));x.wk.push(await walk(b1,d));x.pts=[a0,a1,b0,b1];
+   x.start=new Date(F.dep.getTime()-x.wk[0].min*6e4);x.end=new Date(T.arr.getTime()+x.wk[x.wk.length-1].min*6e4);
+   x.ok=x.start>=new Date(t0.getTime()-6e4)&&(G.length<2||G[1].dep>=new Date(G[0].arr.getTime()+(x.wk[1].min+1)*6e4))}));
+  plans=plans.filter(x=>x.ok).sort((a,b)=>a.end-b.end).slice(0,6);
+  if(!plans.length){res.innerHTML=`<div class="card m">No direct or one-transfer route found that you can reach in time${P.mode==='at'?' for that time. Live predictions only reach a short time ahead':''}.</div>`;return}
   drawPlans()}catch(e){res.innerHTML='';fail(e)}}
-function drawPlans(){const o=P.o,d=P.d;LG.clearLayers();dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);map.fitBounds([[o.lat,o.lon],[d.lat,d.lon]],{padding:[50,50]});
- $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Direct and one-transfer · live predictions · estimates only</div></div>`+plans.map((x,i)=>`<div class="card opt"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
-<div class="m">Walk ${x.w1} min → ${x.legs.map(l=>`<span class="badge">${esc(l.rt)}</span>`).join(` → Walk ${x.wx} min → `)} → Walk ${x.w2} min</div>`+
- x.legs.map((l,j)=>`${j?`<div class="m" style="margin:8px 0">↳ Transfer: walk ${x.wx} min to ${esc(l.from.name)}</div>`:''}<div class="stp"><b>${fmt(l.dep)}</b> Board line ${esc(l.rt)} at ${esc(l.from.name)}<div class="m">to ${esc(l.des)} · Bus ${esc(l.vid)} · ${l.n} stop${l.n>1?'s':''}</div><div style="margin-top:6px"><b>${fmt(l.arr)}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-plan="${i}|${j}" style="width:100%;margin-top:8px">Track ${x.legs.length>1?'leg '+(j+1):'this bus'}</button></div>`).join('')+`</div>`).join('')}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-plan]');if(b){const[i,j]=b.dataset.plan.split('|'),l=plans[i].legs[j];track(l.vid,l.rt,l.des,{target:{id:l.to.id,n:l.to.name}})}});
+const wt=w=>`${w.min} min (${w.mi<0.1?Math.round(w.mi*5280)+' feet':w.mi.toFixed(1)+' miles'})${w.est?' est.':''}`;
+function selPlan(i){const x=plans[i],o=P.o,d=P.d;if(!x)return;document.querySelectorAll('.opt').forEach((e,k)=>e.classList.toggle('sel',k==i));LG.clearLayers();
+ dot(o,'#1d5fd0',9).addTo(LG);dot(d,'#d62f4b',9).addTo(LG);const[a0,a1,b0,b1]=x.pts,multi=x.legs.length>1,
+ wl=w=>L.polyline(w.pts,{color:'#1d5fd0',weight:5,dashArray:'2 9',lineCap:'round'}).addTo(LG),bl=(p,q)=>L.polyline([[p.lat,p.lon],[q.lat,q.lon]],{color:'#EE8329',weight:6,className:'rl'}).addTo(LG);
+ wl(x.wk[0]);bl(a0,a1);if(multi){wl(x.wk[1]);bl(b0,b1)}wl(x.wk[x.wk.length-1]);
+ [a0,a1,b0,b1].forEach(p=>p&&dot(p,'#EE8329',6).addTo(LG));
+ map.fitBounds([o,d,a0,a1,b0,b1].filter(Boolean).map(p=>[p.lat,p.lon]),{padding:[50,50],maxZoom:16})}
+function drawPlans(){document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
+ $('#res').innerHTML=`<div class="card" style="background:#006E50;padding:10px 14px"><b>We found ${plans.length} option${plans.length>1?'s':''}</b><div class="m">Tap an option to see its walk and bus path on the map · estimates only</div></div>`+plans.map((x,i)=>{const W=x.wk,G=x.legs,last=G[G.length-1];
+  return `<div class="card opt" data-opt="${i}"><div class="row"><b class="sp">${fmt(x.start)}–${fmt(x.end)}</b><b style="font-size:18px">${Math.round((x.end-x.start)/6e4)} min</b></div>
+<div class="m">Walk ${W[0].min} min → ${G.map(l=>`<span class="badge">${esc(l.rt)}</span>`).join(` → Walk ${W[1]?W[1].min:''} min → `)} → Walk ${W[W.length-1].min} min</div>
+<div class="stp"><b>${fmt(x.start)}</b> Walk ${wt(W[0])} to ${esc(G[0].from.name)}</div>`+
+  G.map((l,j)=>`${j?`<div class="m" style="margin:8px 0">↳ Transfer: walk ${wt(W[1])} to ${esc(l.from.name)}</div>`:''}<div class="stp"><b>${fmt(l.dep)}</b> Board line ${esc(l.rt)} at ${esc(l.from.name)}<div class="m">to ${esc(l.des)} · Bus ${esc(l.vid)} · ${l.n} stop${l.n>1?'s':''}</div><div style="margin-top:6px"><b>${fmt(l.arr)}</b> Get off at ${esc(l.to.name)}</div><button class="o" data-plan="${i}|${j}" style="width:100%;margin-top:8px">Track ${G.length>1?'leg '+(j+1):'this bus'}</button></div>`).join('')+
+  `<div class="stp" style="border:0"><b>${fmt(last.arr)}</b> Walk ${wt(W[W.length-1])} to ${esc(P.d.name||'your destination')}</div></div>`}).join('');selPlan(0)}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-plan]');if(b){const[i,j]=b.dataset.plan.split('|'),l=plans[i].legs[j];track(l.vid,l.rt,l.des,{target:{id:l.to.id,n:l.to.name}});return}
+ const c=e.target.closest('[data-opt]');if(c&&plans.length)selPlan(+c.dataset.opt)});
 
 /* tracking */
 function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayers();
