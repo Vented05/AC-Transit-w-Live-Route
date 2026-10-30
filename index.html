@@ -2,7 +2,8 @@
 <html lang="en"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#18865F">
+<meta name="theme-color" content="#121214">
+<script>try{var t=localStorage.theme||"auto";document.documentElement.dataset.theme=(t==="dark"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches))?"dark":"light"}catch(e){document.documentElement.dataset.theme="dark"}</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bus Tracker">
@@ -149,6 +150,51 @@ body.navmode .ovc{display:none}
 .tgt{position:relative;width:0;height:0}.tgt i{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;background:var(--o);border:4px solid #fff;animation:tp 1.6s infinite}
 .tgt b{position:absolute;left:20px;top:-14px;background:#111;color:#fff;padding:4px 10px;border-radius:12px;font-size:12px;white-space:nowrap}
 @keyframes tp{0%{box-shadow:0 0 0 0 rgba(238,131,41,.7)}70%{box-shadow:0 0 0 20px rgba(238,131,41,0)}100%{box-shadow:0 0 0 0 rgba(238,131,41,0)}}
+
+/* ---- theme: dark/light, flight-tracker-inspired ---- */
+html[data-theme=dark]{--bg:#121214;--sf:#1f1f23;--sf2:#2a2a30;--bd:rgba(255,255,255,.08);--tx:#fff;--m:#a1a1aa;--o:#3ee6a8;--acx:#3ee6a8;--st:#121214;color-scheme:dark}
+html[data-theme=light]{--bg:#f3f4f6;--sf:#fff;--sf2:#eceef1;--bd:rgba(0,0,0,.08);--tx:#111114;--m:#6b7078;--o:#12b886;--acx:#0b8a63;--st:#121214;color-scheme:light}
+:root{--c:var(--sf);--on:#04251a;--grad:linear-gradient(100deg,#3ee6a8,#46b6f5)}
+html,body{background:var(--bg);color:var(--tx)}
+header{background:linear-gradient(to bottom,var(--st) 0,var(--st) env(safe-area-inset-top),var(--bg) env(safe-area-inset-top));border-bottom:1px solid var(--bd);box-shadow:none;color:var(--tx)}
+header::after{display:none}.logo{color:var(--tx)}.logo b{color:var(--acx)}header small{color:var(--m)}
+.live{background:var(--sf);border:1px solid var(--bd);color:var(--tx)}.live i{background:var(--o)}
+nav button{color:var(--m);border-radius:999px;opacity:1;box-shadow:none}
+nav button.on{background:var(--tx);color:var(--bg);box-shadow:none}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:26px;box-shadow:none;color:var(--tx)}
+.card:has(.rt){border:1px solid var(--bd)}
+@media(hover:hover){.card:hover{box-shadow:0 10px 28px rgba(0,0,0,.18)}}
+.rt{background:var(--sf2);color:var(--acx);font-weight:800;text-transform:uppercase;letter-spacing:.5px;border-radius:16px}
+.m,.sh{color:var(--m)}.sh,label{text-transform:uppercase;letter-spacing:.7px}
+button{background:var(--sf2);color:var(--tx);border-radius:999px;border:1px solid var(--bd)}
+button.o{background:var(--grad);color:var(--on);border:0;font-weight:700}
+button.g{background:var(--sf2);color:var(--tx)}.star{background:none;border:0;color:var(--acx)}
+input{background:var(--sf2);color:var(--tx);border:1px solid var(--bd);border-radius:999px;padding:0 16px}
+input[type=radio]{accent-color:var(--o)}
+.seg{background:var(--sf);border:1px solid var(--bd);border-radius:999px;margin:-12px 0 12px;padding:4px;top:8px;gap:2px}
+.seg button,.seg button.on{box-shadow:none;border:0;border-radius:999px;background:transparent;color:var(--m);min-height:40px}
+.seg button.on{background:var(--tx);color:var(--bg)}
+.chip{background:var(--sf2);color:var(--tx)}.chip.soon{background:var(--grad);color:var(--on);animation:none}
+.chip b{font-weight:800}
+.stp{border-bottom:1px solid var(--bd)}.li{background:transparent;color:var(--tx);border:0;border-bottom:1px solid var(--bd);border-radius:0}
+.lk{background:var(--sf);border:1px solid var(--bd);color:var(--tx);border-radius:22px}
+.sug button{background:var(--sf2);color:var(--tx);border-radius:14px;margin-top:4px}
+.alert{background:var(--grad);color:var(--on)}.alert.go{background:#e5384c;color:#fff}.err{background:rgba(229,56,76,.15);color:var(--tx);border:1px solid rgba(229,56,76,.4)}
+.sk{background:linear-gradient(100deg,var(--sf) 30%,var(--sf2) 50%,var(--sf) 70%) 0 0/200% 100%}
+.badge{background:var(--sf2);color:var(--acx);border:1px solid var(--bd)}
+.opt.sel,.opt.sel:has(.rt){border-color:var(--o);background:var(--sf)}
+.ovc,#nc,#nf{background:var(--sf);border:1px solid var(--bd);color:var(--tx);backdrop-filter:none}
+#nb{background:var(--sf);border:1px solid var(--bd);color:var(--tx)}#nb.warn{background:#c62839;color:#fff}.th{background:var(--sf2);color:var(--tx)}
+.pill{background:var(--grad);color:var(--on)}.bar{background:var(--sf2)}.bar i{background:var(--grad)}
+.tl,#rl::before{border-color:var(--sf2)}#rl::before{background:var(--sf2)}
+.rs.nx{background:var(--sf2)}.rs i{background:var(--m)}.rs.ps i{background:var(--o)}.rs.nx i{background:var(--tx)}.rs.tg i{background:var(--o)}.rs.tg b{color:var(--acx)}
+#rb{background:var(--bg);border-color:var(--o)}.nx{color:var(--tx)}.r{color:#ff5a4d}
+#splash{background:var(--bg);color:var(--tx)}#splash .rd{border-color:var(--m)}
+html[data-theme=dark] .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.9) saturate(.35)}
+html[data-theme=dark] .leaflet-container{background:#1b1b1f}
+@media(max-width:899px){
+ #bnav{background:var(--sf);border:1px solid var(--bd);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+ #bnav button{color:var(--m)}#bnav button.on{background:var(--tx);color:var(--bg)}}
 </style></head><body>
 <div id="splash"><div class="lg">AC TRANSIT</div><div class="rd"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="4" width="60" height="26" rx="7" fill="#fff"/><rect x="8" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="24" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="40" y="9" width="14" height="9" rx="2" fill="#18865F"/><rect x="2" y="22" width="60" height="4" fill="#EE8329"/><circle cx="16" cy="32" r="5" fill="#222"/><circle cx="48" cy="32" r="5" fill="#222"/></svg></div><div style="font-size:12px;opacity:.85">Unofficial live bus tracker</div></div>
 <header><div class="logo"><b>AC</b>TRANSIT</div><span class="live"><i></i>LIVE</span><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
@@ -161,6 +207,10 @@ body.navmode .ovc{display:none}
 const PX=((p=>p&&!/^https?:\/\//i.test(p)?'https://'+p:p)((localStorage.proxy||(/YOUR-WORKER/.test(window.APP_CONFIG?.proxy||'')?'':window.APP_CONFIG?.proxy)||'').trim())).replace(/\/*$/,''),B=PX?PX+'/':'https://api.actransit.org/transit/',$=s=>document.querySelector(s);
 let tok=localStorage.tok||'',favs=JSON.parse(localStorage.favs||'[]'),timer,wake,watch,me,meT=0,tab='home',prevTab='home',TR=null,P={mode:'now'},CARDS={},plans=[];
 const TABS=[['home','Home'],['favs','Favorites'],['search','Search'],['more','More']];
+const mq=matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(){const t=localStorage.theme||'auto',d=t==='dark'||(t==='auto'&&mq.matches);document.documentElement.dataset.theme=d?'dark':'light';document.querySelector('meta[name=theme-color]').content=d?'#121214':'#f3f4f6'}
+mq.addEventListener('change',applyTheme);applyTheme();
+document.addEventListener('click',e=>{const b=e.target.closest('[data-th]');if(b){localStorage.theme=b.dataset.th;applyTheme();document.querySelectorAll('[data-th]').forEach(x=>x.classList.toggle('on',x===b))}});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const H=(a,b)=>{const r=Math.PI/180,x=Math.sin((b.lat-a.lat)*r/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin((b.lon-a.lon)*r/2)**2;return 41804462*Math.asin(Math.sqrt(x))};
 const pt=s=>{const m=/(\d{4})(\d\d)(\d\d) (\d\d):(\d\d)/.exec(s||'');return m?new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5]):null};
@@ -369,11 +419,11 @@ function startRoute(i){const it=ops[i],st=[];
  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
  watch=navigator.geolocation.watchPosition(p=>{if(!NV)return;NV.pos={lat:p.coords.latitude,lon:p.coords.longitude};NV.u?NV.u.setLatLng([NV.pos.lat,NV.pos.lon]):NV.u=dot(NV.pos,'#1d5fd0',9).addTo(map)},()=>{},{enableHighAccuracy:true});
  setTimeout(()=>{map.invalidateSize();enter()},120);NV.t=setInterval(ntick,4000)}
-function drawNav(){LG.clearLayers();NV.it.legs.forEach(l=>{const g=dec(l.legGeometry.points);
+function drawRoute(){LG.clearLayers();NV.it.legs.forEach(l=>{const g=dec(l.legGeometry.points);
   L.polyline(g,l.mode==='WALK'?{color:'#1d5fd0',weight:6,dashArray:'2 9',lineCap:'round'}:{color:'#'+(l.routeColor||'EE8329'),weight:8,className:'rl'}).addTo(LG)});
  const s=NV.st[NV.i];if(!s)return;L.marker([s.to.lat,s.to.lon],{icon:L.divIcon({html:`<div class="tgt"><i></i><b>${esc(s.to.name)}</b></div>`,className:'',iconSize:[0,0]})}).addTo(LG);
  const pts=[[s.to.lat,s.to.lon]];if(NV.pos)pts.push([NV.pos.lat,NV.pos.lon]);map.fitBounds(pts,{paddingTopLeft:[30,190],paddingBottomRight:[30,290],maxZoom:17})}
-function enter(){NV.fired=false;NV.warn=false;NV.pm={};NV.eta=null;drawNav();paint(true)}
+function enter(){NV.fired=false;NV.warn=false;NV.pm={};NV.eta=null;drawRoute();paint(true)}
 function nextStep(){NV.i++;if(NV.i>=NV.st.length){NV.done=1;paint(true);return}enter()}
 function paint(full){if(!NV)return;const it=NV.it,now=Date.now(),s=NV.st[NV.i];let t,sub,c='',ic;
  if(NV.done){t='You’ve arrived';sub=esc(P.d.name||'');ic='done';c='<button class="o" data-nv="exit" style="width:100%">Done</button>'}
@@ -386,7 +436,7 @@ function paint(full){if(!NV)return;const it=NV.it,now=Date.now(),s=NV.st[NV.i];l
   if(s.k==='ride'){const S=[l.from,...(l.intermediateStops||[]),l.to];NV.S=S;t=NV.tt||'Ride to '+l.to.name;sub=NV.ss||'';
    c=`<div id="rl">${S.map((p,k)=>`<div class="rs${k==S.length-1?' tg':''}" id="rs${k}" style="order:${S.length-k}"><i></i><b>${esc(p.name)}</b><div class="m">Stop ${esc(p.stopCode)} · <span class="tm">${fmt(new Date(p.arrival||p.departure))}</span></div></div>`).join('')}<div id="rb">🚌</div></div><button class="g" data-nv="next" style="width:100%;margin-top:10px">I got off</button>`}}
  $('#nb').className=NV.warn?'warn':'';
- $('#nb').innerHTML=`<div class="row"><span style="font-size:34px">${ICO[ic]}</span><div class="sp"><div class="tt">${esc(t)}</div><div class="m" style="color:#d6efe7">${sub}</div></div></div>${NV.done||!NV.then?'':`<span class="th">${esc(NV.then)}</span>`}`;
+ $('#nb').innerHTML=`<div class="row"><span style="font-size:34px">${ICO[ic]}</span><div class="sp"><div class="tt">${esc(t)}</div><div class="m" style="color:var(--m)">${sub}</div></div></div>${NV.done||!NV.then?'':`<span class="th">${esc(NV.then)}</span>`}`;
  if(full){$('#nc').innerHTML=c;$('#nc').style.display=c?'block':'none';if(!NV.done&&s.k==='ride')upd()}
  const rem=Math.max(0,Math.round((it.endTime-now)/6e4));
  $('#nf').innerHTML=`<div class="sp"><div class="big">${rem} min</div><div class="m">${fmt(new Date(it.endTime))} arrival</div></div><button style="background:#e5384c;min-width:96px" data-nv="exit">Exit</button>`}
@@ -396,7 +446,7 @@ function upd(){const s=NV.st[NV.i],S=NV.S,now=Date.now(),T=S.length-1;if(!S||!$(
  S.forEach((p,k)=>{const r=$('#rs'+k),m=NV.pm[p.stopCode];r.classList.toggle('ps',k<idx);r.classList.toggle('nx',k===idx);r.querySelector('.tm').textContent=fmt(new Date(m||p.arrival||p.departure))+(m?' · live':'')});
  const left=T-idx,rb=$('#rb'),row=$('#rs'+Math.max(idx-1,0)),box=$('#nc');
  rb.style.top=(row.offsetTop+row.offsetHeight/2-17)+'px';
- const nr=$('#rs'+idx);if(nr)box.scrollTo({top:Math.max(0,nr.offsetTop-box.clientHeight/2),behavior:'smooth'});
+ const nr=$('#rs'+idx);if(nr)box.scrollTo?.({top:Math.max(0,nr.offsetTop-box.clientHeight/2),behavior:'smooth'});
  NV.warn=idx===T;NV.tt=idx===T?'Get off at '+S[T].name:'Ride to '+S[T].name;
  NV.ss=idx===T?'Your stop is next!':`${left} stop${left>1?'s':''} to go · next: ${S[idx].name}`+(left===1?' (then yours)':'');
  if(idx===T&&!NV.fired){NV.fired=true;if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
@@ -473,7 +523,7 @@ function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayer
 
 function more(){const A=(n,u)=>`<a class="lk" target="_blank" rel="noopener" href="${u}"><span>${n}</span><span>›</span></a>`,W='https://www.actransit.org/';
  const L=`<div class="sh">USING AC TRANSIT</div>${A('Fare Information',W+'fares')}${A('Contactless Payment',W+'contactless-payment')}${A('Bikes',W+'bikes')}<div class="sh">CONTACT US</div>${A('Compliments and Feedback',W+'customer/customer-feedback/report')}${A('Lost and Found',W+'lostandfound')}${A('Contact Us',W+'contact-us')}<div class="sh">MORE SUPPORT</div>${A('District Website',W)}${A('News',W+'news')}${A('Subscriptions','https://service.govdelivery.com/accounts/ACTRANSIT/subscriber/new')}${A('Data terms and conditions',W+'data-terms-and-conditions/')}`;
- show(`<div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
+ show(`<div class="card"><b>Appearance</b><p class="m">Auto follows your phone’s light/dark setting.</p><div class="seg" style="position:static;margin:0">${['auto','light','dark'].map(k=>`<button data-th="${k}" class="${(localStorage.theme||'auto')===k?'on':''}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div></div><div class="card"><b>AC Transit API token</b><p class="m">Stored only on this device. Register for one at api.actransit.org/transit.</p>
 <input id="tk" type="password" placeholder="Paste token (optional if your proxy holds it)" value="${esc(tok)}" aria-label="API token"></div>
 <div class="card"><b>Proxy URL (fixes “Failed to fetch”)</b><p class="m">Your Cloudflare Worker address, e.g. https://bus.yourname.workers.dev</p><input id="px" placeholder="https://…workers.dev" value="${esc(PX)}" aria-label="Proxy URL"><p><button id="sv">Save &amp; reload</button></p></div>
 <div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>${L}`);
