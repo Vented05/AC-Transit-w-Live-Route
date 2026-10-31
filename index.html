@@ -196,17 +196,8 @@ html[data-theme=dark] .leaflet-container{background:#1b1b1f}
  #bnav{background:var(--sf);border:1px solid var(--bd);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
  #bnav button{color:var(--m)}#bnav button.on{background:var(--tx);color:var(--bg)}}
 
-/* phone: app-shell layout so the page itself never scrolls (keeps the tab bar steady when Safari's toolbar expands/collapses) */
-@media(max-width:899px){
- html,body{height:100%;overflow:hidden;overscroll-behavior:none}
- #app{display:flex;flex-direction:column;height:calc(100dvh - var(--hh) - env(safe-area-inset-top));padding-bottom:0}
- #side{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
- #mapwrap{order:-1;flex:none;position:relative!important;top:auto!important}
- body.mapon #mapwrap{display:block;height:42vh}
- body.mapfull #mapwrap{flex:1;height:auto}body.mapfull #side{flex:none;padding-bottom:0}
- body.navmode #app{display:block;height:100dvh}
- body.navmode #mapwrap{position:fixed!important;inset:0;height:100dvh!important;flex:none}
-}
+/* phone: keep the page always scrollable so Safari's toolbar state (and our tab bar) doesn't jump when a short tab loads */
+@media(max-width:899px){#app{min-height:calc(100dvh + 140px)}body.navmode #app{min-height:0}}
 </style></head><body>
 <div id="splash"><div class="lg">AC TRANSIT</div><div class="rd"><svg width="64" height="40" viewBox="0 0 64 40" aria-hidden="true"><rect x="2" y="4" width="60" height="26" rx="7" fill="#fff"/><rect x="8" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="24" y="9" width="12" height="9" rx="2" fill="#18865F"/><rect x="40" y="9" width="14" height="9" rx="2" fill="#18865F"/><rect x="2" y="22" width="60" height="4" fill="#EE8329"/><circle cx="16" cy="32" r="5" fill="#222"/><circle cx="48" cy="32" r="5" fill="#222"/></svg></div><div style="font-size:12px;opacity:.85">Unofficial live bus tracker</div></div>
 <header><div class="logo"><b>AC</b>TRANSIT</div><span class="live"><i></i>LIVE</span><nav id="hn"></nav><small>Unofficial · not an AC Transit product</small></header>
