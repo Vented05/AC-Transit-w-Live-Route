@@ -237,13 +237,14 @@ async function nearStops(lat,lon,ft){let a,last;lat=(+lat).toFixed(5);lon=(+lon)
 const map=L.map('map').setView([37.69,-122.1],12);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
 let LG=L.layerGroup().addTo(map);
+let UM=null;const userDot=p=>{UM?UM.setLatLng([p.lat,p.lon]):UM=dot(p,'#1d5fd0',9).addTo(map)},clearUser=()=>{UM&&UM.remove();UM=null};
 const dot=(c,col,r=7)=>L.circleMarker([c.lat,c.lon],{radius:r,color:'#fff',weight:2,fillColor:col,fillOpacity:1});
 function mapStops(s){LG.clearLayers();s.forEach(x=>dot(x,'#18865F').bindTooltip(x.name).addTo(LG));
  if(me)dot(me,'#1d5fd0',9).addTo(LG);const pts=s.map(x=>[x.lat,x.lon]);if(me)pts.push([me.lat,me.lon]);if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:16})}
 
 /* nav */
 function drawNav(){const h=TABS.map(([k,n])=>`<button data-t="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');$('#hn').innerHTML=h;$('#bnav').innerHTML=h}
-function go(t){clearInterval(timer);TR=null;LG.clearLayers();$('#ov').innerHTML='';document.body.classList.remove('mapon','mapfull');
+function go(t){clearInterval(timer);TR=null;LG.clearLayers();clearUser();$('#ov').innerHTML='';document.body.classList.remove('mapon','mapfull');
  if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}if(wake){wake.release().catch(()=>{});wake=null}
  tab=t;drawNav();({home,favs:favsV,search:searchV,more})[t]();setTimeout(()=>map.invalidateSize(),60)}
 document.addEventListener('click',e=>{const t=e.target.closest('[data-t]');if(t)go(t.dataset.t)});
@@ -412,19 +413,20 @@ function drawOtp(){document.body.classList.add('mapon');setTimeout(()=>map.inval
 /* ---- Start Route (live navigation) ---- */
 let NV=null;
 const ICO={walk:'🚶',wait:'⏱',ride:'🚌',done:'🏁'};
-function startRoute(i){const it=ops[i],st=[];
+function startRoute(i,rs){const it=ops[i],st=[];
  it.legs.forEach(l=>{if(l.mode==='WALK')st.push({k:'walk',l,to:l.to});else{st.push({k:'wait',l,to:l.from});st.push({k:'ride',l,to:l.to})}});
- clearInterval(timer);NV={it,st,i:0,pm:{},c:0};document.body.classList.add('navmode');$('#nav').hidden=false;
+ clearInterval(timer);NV={it,st,i:rs&&rs.i||0,pm:{},c:0,vid:rs&&rs.vid};document.body.classList.add('navmode');$('#nav').hidden=false;
  if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
- watch=navigator.geolocation.watchPosition(p=>{if(!NV)return;NV.pos={lat:p.coords.latitude,lon:p.coords.longitude};NV.u?NV.u.setLatLng([NV.pos.lat,NV.pos.lon]):NV.u=dot(NV.pos,'#1d5fd0',9).addTo(map)},()=>{},{enableHighAccuracy:true});
+ watch=navigator.geolocation.watchPosition(p=>{if(!NV)return;NV.pos={lat:p.coords.latitude,lon:p.coords.longitude};NV.acc=p.coords.accuracy||0;NV.spd=p.coords.speed;userDot(NV.pos)},()=>{},{enableHighAccuracy:true});
  setTimeout(()=>{map.invalidateSize();enter()},120);NV.t=setInterval(ntick,4000)}
 function drawRoute(){LG.clearLayers();NV.it.legs.forEach(l=>{const g=dec(l.legGeometry.points);
   L.polyline(g,l.mode==='WALK'?{color:'#1d5fd0',weight:6,dashArray:'2 9',lineCap:'round'}:{color:'#'+(l.routeColor||'EE8329'),weight:8,className:'rl'}).addTo(LG)});
  const s=NV.st[NV.i];if(!s)return;L.marker([s.to.lat,s.to.lon],{icon:L.divIcon({html:`<div class="tgt"><i></i><b>${esc(s.to.name)}</b></div>`,className:'',iconSize:[0,0]})}).addTo(LG);
  const pts=[[s.to.lat,s.to.lon]];if(NV.pos)pts.push([NV.pos.lat,NV.pos.lon]);map.fitBounds(pts,{paddingTopLeft:[30,190],paddingBottomRight:[30,290],maxZoom:17})}
-function enter(){NV.fired=false;NV.warn=false;NV.pm={};NV.eta=null;drawRoute();paint(true)}
-function nextStep(){NV.i++;if(NV.i>=NV.st.length){NV.done=1;paint(true);return}enter()}
+function saveNav(){if(NV&&!NV.done)localStorage.nav=JSON.stringify({it:NV.it,i:NV.i,vid:NV.vid,d:P.d,o:P.o,t:Date.now()})}
+function enter(){NV.fired=false;NV.warn=false;NV.pm={};NV.eta=null;drawRoute();paint(true);saveNav()}
+function nextStep(){NV.i++;if(NV.i>=NV.st.length){NV.done=1;localStorage.removeItem('nav');paint(true);return}enter()}
 function paint(full){if(!NV)return;const it=NV.it,now=Date.now(),s=NV.st[NV.i];let t,sub,c='',ic;
  if(NV.done){t='You’ve arrived';sub=esc(P.d.name||'');ic='done';c='<button class="o" data-nv="exit" style="width:100%">Done</button>'}
  else{const l=s.l,nx=NV.st[NV.i+1];ic=s.k;
@@ -452,19 +454,22 @@ function upd(){const s=NV.st[NV.i],S=NV.S,now=Date.now(),T=S.length-1;if(!S||!$(
  if(idx===T&&!NV.fired){NV.fired=true;if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
   if('Notification'in window&&Notification.permission==='granted')new Notification('Time to get off',{body:S[T].name,requireInteraction:true})}}
 async function ntick(){if(!NV||NV.done)return;const s=NV.st[NV.i];NV.c++;
- if(s.k==='walk'&&NV.pos&&H(NV.pos,s.to)<130){nextStep();return}
+ if(s.k==='walk'&&NV.pos&&H(NV.pos,s.to)-(NV.acc||0)*3.28<120){nextStep();return}
  try{if(s.k==='wait'&&NV.c%4===1){const p=(await bt('actrealtime/prediction?stpid='+s.to.stopCode+'&rt='+encodeURIComponent(s.l.route))).prd||[],tid=(s.l.tripId||'').split(':')[1];
    let b=p.find(x=>x.tripid===tid||x.origtatripno===tid);if(!b)b=p.map(x=>({x,d:Math.abs((pt(x.prdtm)||0)-s.l.startTime)})).sort((a,c)=>a.d-c.d)[0]?.x;
-   if(b&&Math.abs(pt(b.prdtm)-s.l.startTime)<25*6e4){NV.vid=b.vid;NV.eta=/^due$/i.test(b.prdctdn)?0:+b.prdctdn}}
+   if(b&&Math.abs(pt(b.prdtm)-s.l.startTime)<25*6e4){NV.vid=b.vid;saveNav();NV.eta=/^due$/i.test(b.prdctdn)?0:+b.prdctdn}}
   if(s.k==='ride'&&NV.vid&&NV.c%2===0){const p=(await bt('actrealtime/prediction?vid='+NV.vid)).prd||[];NV.pm={};p.forEach(x=>NV.pm[x.stpid]=pt(x.prdtm).getTime())}
-  if(NV.vid&&NV.b){const v=(await bt('actrealtime/vehicle?vid='+NV.vid)).vehicle?.[0];if(v)NV.b.setLatLng([+v.lat,+v.lon])}}catch(e){}
- if(!NV)return;if(s.k==='ride')upd();paint(false)}
+  if(NV.vid&&(NV.b||s.k==='wait')&&NV.c%2===0){const v=(await bt('actrealtime/vehicle?vid='+NV.vid)).vehicle?.[0];if(v){NV.bp={lat:+v.lat,lon:+v.lon};NV.b&&NV.b.setLatLng([NV.bp.lat,NV.bp.lon])}}}catch(e){}
+ if(!NV)return;
+ if(s.k==='wait'&&NV.pos&&NV.st[NV.i]===s){const dS=H(NV.pos,s.to),dB=NV.bp?H(NV.pos,NV.bp):1e9;if((dS>160&&dB<260)||(dS>300&&NV.spd>4)){nextStep();return}}
+ if(s.k==='ride')upd();paint(false)}
 async function showBus(btn){if(!NV.vid){btn.textContent='Bus not live yet';return}
  try{const v=(await bt('actrealtime/vehicle?vid='+NV.vid)).vehicle?.[0];if(!v)return;const c=[+v.lat,+v.lon],l=NV.st[NV.i].l;
   if(NV.b)NV.b.setLatLng(c);else NV.b=L.marker(c,{icon:L.divIcon({html:`<div class="bm"><i class="ar"></i>${esc(l.route)}</div>`,iconSize:[44,44],iconAnchor:[22,22],className:'busm'})}).addTo(map);
   const s=NV.st[NV.i];map.fitBounds([c,[s.to.lat,s.to.lon]].concat(NV.pos?[[NV.pos.lat,NV.pos.lon]]:[]),{paddingTopLeft:[30,190],paddingBottomRight:[30,290],maxZoom:17})}catch(e){}}
-function exitNav(){if(!NV)return;clearInterval(NV.t);NV.u&&NV.u.remove();NV.b&&NV.b.remove();if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}
+function exitNav(){if(!NV)return;clearInterval(NV.t);clearUser();localStorage.removeItem('nav');NV.b&&NV.b.remove();if(watch!=null){navigator.geolocation.clearWatch(watch);watch=null}
  if(wake){wake.release().catch(()=>{});wake=null}NV=null;document.body.classList.remove('navmode');$('#nav').hidden=true;go('search')}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&NV){if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});ntick()}});
 document.addEventListener('click',e=>{const a=e.target.closest('[data-nv]'),r=e.target.closest('[data-sr]');
  if(r){startRoute(+r.dataset.sr);return}
  if(a){const k=a.dataset.nv;if(k==='exit')exitNav();else if(k==='next')nextStep();else if(k==='bus')showBus(a)}});
@@ -494,7 +499,7 @@ function track(vid,rt,des,opt={}){prevTab=tab;clearInterval(timer);LG.clearLayer
  show(`<div id="al"></div><button class="g" id="bk">← Back</button><div class="card" style="margin-top:12px"><b>Line ${esc(rt)} to ${esc(des)}</b><div class="m">Bus ${esc(vid)} · tap “Get off here” on your stop</div></div><div class="card" id="stl"></div>`);
  $('#bk').onclick=()=>go(prevTab);document.body.classList.add('mapon');setTimeout(()=>map.invalidateSize(),60);
  if(navigator.wakeLock)navigator.wakeLock.request('screen').then(w=>wake=w).catch(()=>{});
- watch=navigator.geolocation.watchPosition(p=>{const c={lat:p.coords.latitude,lon:p.coords.longitude};me2?me2.setLatLng([c.lat,c.lon]):me2=dot(c,'#1d5fd0',9).addTo(map)});
+ watch=navigator.geolocation.watchPosition(p=>{const c={lat:p.coords.latitude,lon:p.coords.longitude};userDot(c)});
  const banner=(h,c)=>{$('#al').innerHTML=h?`<div class="alert ${c||''}">${h}</div>`:''};
  const fire=()=>{alerted=true;banner('🔔 Get off next: '+esc(target.n),'go');if(navigator.vibrate)navigator.vibrate([400,200,400,200,400]);
   if('Notification'in window&&Notification.permission==='granted')new Notification('Time to get off',{body:target.n,requireInteraction:true})};
@@ -529,5 +534,6 @@ function more(){const A=(n,u)=>`<a class="lk" target="_blank" rel="noopener" hre
 <div class="card m">Unofficial app. Arrival data comes from the public AC Transit API and may be delayed or wrong. Map © OpenStreetMap; address search by Nominatim.</div>${L}`);
  $('#sv').onclick=()=>{localStorage.tok=$('#tk').value.trim();localStorage.proxy=$('#px').value.trim();location.reload()}}
 go(tok||PX?'home':'more');setTimeout(()=>$('#splash').classList.add('out'),1200);setTimeout(()=>$('#splash').remove(),1800);
+try{const sv=JSON.parse(localStorage.nav||'null');if(sv&&Date.now()-sv.t<4*36e5&&sv.it.endTime>Date.now()-18e5){ops=[sv.it];P.d=sv.d;P.o=sv.o;startRoute(0,sv)}else localStorage.removeItem('nav')}catch(e){localStorage.removeItem('nav')}
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 </script></body></html>
